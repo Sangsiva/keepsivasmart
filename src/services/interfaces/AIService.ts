@@ -1,6 +1,6 @@
 export interface GenerateCurriculumParams {
   userId: string;
-  baseSkills: string[];
+  selectedTopic: string;
   projectContext: string;
   dailyOverrides?: string[];
   durationMinutes: 30 | 60;

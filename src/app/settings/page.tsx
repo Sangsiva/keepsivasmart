@@ -2,44 +2,108 @@
 
 import { useState, useEffect } from 'react';
 
+type TopicWeight = { id: string; topic: string; weight: number };
+
 export default function SettingsPage() {
-  const [baseSkills, setBaseSkills] = useState('');
   const [projectContext, setProjectContext] = useState('');
   const [apiKey, setApiKey] = useState('');
+  const [topics, setTopics] = useState<TopicWeight[]>([]);
 
   useEffect(() => {
-    setBaseSkills(localStorage.getItem('baseSkills') || '');
     setProjectContext(localStorage.getItem('projectContext') || '');
     setApiKey(localStorage.getItem('geminiApiKey') || '');
+    const savedTopics = localStorage.getItem('topicWeights');
+    if (savedTopics) {
+      try {
+        setTopics(JSON.parse(savedTopics));
+      } catch (e) {
+        setTopics([{ id: '1', topic: 'AI & LLMs', weight: 100 }]);
+      }
+    } else {
+      // Default migration from old baseSkills
+      const oldSkills = localStorage.getItem('baseSkills');
+      if (oldSkills) {
+        const skillsArr = oldSkills.split(',').map(s => s.trim());
+        const weightPerSkill = Math.floor(100 / skillsArr.length);
+        const newTopics = skillsArr.map((s, i) => ({
+          id: Math.random().toString(),
+          topic: s,
+          weight: i === skillsArr.length - 1 ? 100 - (weightPerSkill * i) : weightPerSkill
+        }));
+        setTopics(newTopics);
+      } else {
+        setTopics([{ id: '1', topic: 'AI & LLMs', weight: 100 }]);
+      }
+    }
   }, []);
 
   const handleSave = () => {
-    localStorage.setItem('baseSkills', baseSkills);
+    const totalWeight = topics.reduce((sum, t) => sum + t.weight, 0);
+    if (totalWeight !== 100) {
+      alert(`Total weights must equal 100%. Currently it is ${totalWeight}%`);
+      return;
+    }
     localStorage.setItem('projectContext', projectContext);
     localStorage.setItem('geminiApiKey', apiKey);
+    localStorage.setItem('topicWeights', JSON.stringify(topics));
     alert('Settings saved locally! They will be used for your next AI generation.');
   };
+
+  const addTopic = () => {
+    setTopics([...topics, { id: Math.random().toString(), topic: '', weight: 0 }]);
+  };
+
+  const updateTopic = (id: string, field: 'topic' | 'weight', value: string | number) => {
+    setTopics(topics.map(t => t.id === id ? { ...t, [field]: value } : t));
+  };
+
+  const removeTopic = (id: string) => {
+    setTopics(topics.filter(t => t.id !== id));
+  };
+
+  const totalWeight = topics.reduce((s, t) => s + t.weight, 0);
 
   return (
     <div className="glass-card" style={{ maxWidth: '600px', margin: '0 auto' }}>
       <h1>Profile Settings</h1>
       
-      <div style={{ marginBottom: '1rem' }}>
-        <label htmlFor="baseSkills" style={{ display: 'block', marginBottom: '0.5rem' }}>
-          Base Skills (comma separated)
+      <div style={{ marginBottom: '2rem' }}>
+        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+          Weighted Learning Topics
         </label>
-        <input 
-          id="baseSkills" 
-          type="text" 
-          value={baseSkills} 
-          onChange={(e) => setBaseSkills(e.target.value)} 
-          placeholder="e.g. AI, React, Node"
-          style={{ width: '100%', padding: '0.5rem' }}
-        />
+        <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0 0 1rem 0' }}>
+          Assign percentage weights to topics. The AI will randomly select ONE topic per day based on these probabilities. Total must equal 100%.
+        </p>
+        
+        {topics.map((t) => (
+          <div key={t.id} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+            <input 
+              type="text" 
+              value={t.topic} 
+              onChange={(e) => updateTopic(t.id, 'topic', e.target.value)}
+              placeholder="e.g. System Design"
+              style={{ flex: 1, padding: '0.5rem' }}
+            />
+            <input 
+              type="number" 
+              value={t.weight} 
+              onChange={(e) => updateTopic(t.id, 'weight', parseInt(e.target.value) || 0)}
+              style={{ width: '80px', padding: '0.5rem' }}
+            />
+            <span style={{ padding: '0.5rem 0' }}>%</span>
+            <button onClick={() => removeTopic(t.id)} style={{ padding: '0.5rem', background: '#ff4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>X</button>
+          </div>
+        ))}
+        <button onClick={addTopic} style={{ padding: '0.5rem 1rem', background: '#eaeaea', color: '#333', border: '1px solid #ccc', borderRadius: '4px', cursor: 'pointer', marginTop: '0.5rem' }}>
+          + Add Topic
+        </button>
+        <div style={{ marginTop: '1rem', fontWeight: 'bold', color: totalWeight === 100 ? 'green' : '#ff4444' }}>
+          Total Weight: {totalWeight}% {totalWeight !== 100 && '(Must equal 100%)'}
+        </div>
       </div>
 
       <div style={{ marginBottom: '1rem' }}>
-        <label htmlFor="projectContext" style={{ display: 'block', marginBottom: '0.5rem' }}>
+        <label htmlFor="projectContext" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
           Project Context
         </label>
         <textarea 
@@ -53,7 +117,7 @@ export default function SettingsPage() {
       </div>
 
       <div style={{ marginBottom: '1rem' }}>
-        <label htmlFor="apiKey" style={{ display: 'block', marginBottom: '0.5rem' }}>
+        <label htmlFor="apiKey" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
           Google Gemini API Key (Optional)
         </label>
         <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0 0 0.5rem 0' }}>
@@ -73,6 +137,7 @@ export default function SettingsPage() {
         onClick={handleSave}
         className="btn-primary"
         style={{ padding: '0.75rem 1.5rem', background: '#0070f3', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+        disabled={totalWeight !== 100}
       >
         Save Settings
       </button>

@@ -10,17 +10,31 @@ export default function GenerateButton() {
   const handleGenerate = async () => {
     setLoading(true);
     try {
-      // For now, load settings from localStorage as mock auth/profile
-      const rawSkills = localStorage.getItem('baseSkills') || 'AI, LLMs, System Architecture';
-      const baseSkills = rawSkills.split(',').map(s => s.trim());
       const projectContext = localStorage.getItem('projectContext') || 'Building a robust full-stack AI agent.';
       const apiKey = localStorage.getItem('geminiApiKey') || undefined;
+      
+      const topicWeightsRaw = localStorage.getItem('topicWeights');
+      let topicWeights = [{ topic: 'AI & LLMs', weight: 100 }];
+      
+      if (topicWeightsRaw) {
+        try {
+          topicWeights = JSON.parse(topicWeightsRaw);
+        } catch (e) {
+          console.error("Failed to parse topic weights", e);
+        }
+      } else {
+        // Fallback for legacy format
+        const rawSkills = localStorage.getItem('baseSkills');
+        if (rawSkills) {
+           topicWeights = rawSkills.split(',').map(s => ({ topic: s.trim(), weight: 100 }));
+        }
+      }
       
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          baseSkills,
+          topicWeights,
           projectContext,
           apiKey,
           durationMinutes: 60,

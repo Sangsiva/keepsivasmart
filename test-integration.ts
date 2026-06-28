@@ -8,7 +8,7 @@ async function main() {
   console.log('1. Generating curriculum via AIService (Demo Mode)...');
   const curriculum = await ai.generateCurriculum({
     userId: 'siva-123',
-    baseSkills: ['React', 'Next.js'],
+    selectedTopic: 'React Performance',
     projectContext: 'Building KeepSivaSmart',
     durationMinutes: 60
   });

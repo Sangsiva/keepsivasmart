@@ -12,14 +12,14 @@ export class GeminiAIService implements AIService {
   }
 
   async generateCurriculum(params: GenerateCurriculumParams): Promise<GeneratedCurriculum> {
-    const { baseSkills, projectContext, durationMinutes, dailyOverrides } = params;
+    const { selectedTopic, projectContext, durationMinutes, dailyOverrides } = params;
 
     const activeKey = this.userApiKey || process.env.GEMINI_API_KEY;
     if (!activeKey || activeKey === 'test-key') {
       console.log('No valid GEMINI_API_KEY found, returning demo content.');
       return {
         title: "Demo: Advanced RAG Architecture",
-        markdownContent: `# Advanced RAG Architecture\n\nThis is a mock response because no \`GEMINI_API_KEY\` was provided in the \`.env\` file.\n\nIn a real scenario, this would be a highly technical ${durationMinutes}-minute deep dive based on your configured skills: **${baseSkills.join(', ')}**.\n\n### Next Steps\nAdd your Gemini API key to the \`.env\` file to generate real curriculum!`,
+        markdownContent: `# Advanced RAG Architecture\n\nThis is a mock response because no \`GEMINI_API_KEY\` was provided in the \`.env\` file.\n\nIn a real scenario, this would be a highly technical ${durationMinutes}-minute deep dive based on your configured skills: **${selectedTopic}**.\n\n### Next Steps\nAdd your Gemini API key to the \`.env\` file to generate real curriculum!`,
         suggestedTags: ["Demo", "Architecture"]
       };
     }
@@ -35,9 +35,11 @@ Output strictly in JSON format matching this schema:
 }`;
 
     const userPrompt = `
-Base Skills: ${baseSkills.join(', ')}
+Today's Primary Focus Topic: ${selectedTopic}
 Current Project Context: ${projectContext}
 Daily Overrides (Topics to focus on today): ${dailyOverrides?.join(', ') || 'None'}
+
+Generate the 1-hour deep dive explicitly focusing on the Primary Focus Topic above. 
     `;
 
     try {

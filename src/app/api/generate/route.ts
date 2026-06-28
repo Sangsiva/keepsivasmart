@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     const userId = session.user.id;
 
     const body = await request.json();
-    const { baseSkills, projectContext, apiKey, durationMinutes, dailyOverrides } = body;
+    const { topicWeights, projectContext, apiKey, durationMinutes, dailyOverrides } = body;
 
     // Upsert the user profile for demo auth
     let user = await prisma.userProfile.findUnique({ where: { userId } });
@@ -20,10 +20,24 @@ export async function POST(request: Request) {
       user = await prisma.userProfile.create({
         data: {
           userId,
-          baseSkills: baseSkills ? baseSkills.join(', ') : 'AI',
+          baseSkills: 'AI & LLMs', // Legacy fallback
           projectContext: projectContext || 'Default',
         }
       });
+    }
+
+    // Weighted selection logic
+    let selectedTopic = 'AI & LLMs';
+    if (topicWeights && Array.isArray(topicWeights) && topicWeights.length > 0) {
+      const rand = Math.random() * 100;
+      let sum = 0;
+      for (const tw of topicWeights) {
+        sum += tw.weight;
+        if (rand <= sum) {
+          selectedTopic = tw.topic;
+          break;
+        }
+      }
     }
 
     const aiService = new GeminiAIService(apiKey);
@@ -31,7 +45,7 @@ export async function POST(request: Request) {
     // Generate the curriculum via Gemini
     const curriculum = await aiService.generateCurriculum({
       userId,
-      baseSkills: baseSkills || [],
+      selectedTopic,
       projectContext: projectContext || '',
       dailyOverrides,
       durationMinutes: durationMinutes || 60,
