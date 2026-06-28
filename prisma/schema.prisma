@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// NextAuth Required Models
+
+model User {
+  id            String          @id @default(cuid())
+  name          String?
+  email         String?         @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  userProfile   UserProfile?
+ 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+ 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+ 
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+ 
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+ 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+ 
+  @@unique([identifier, token])
+}
+
+// App Models
+
+model UserProfile {
+  id             String           @id @default(cuid())
+  userId         String           @unique 
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  baseSkills     String           // Comma separated list of skills
+  projectContext String           // Details about current project
+  currentRole    String           @default("AI & LLM Technical Architect Manager")
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  modules        LearningModule[]
+  activityLogs   ActivityLog[]
+}
+
+model LearningModule {
+  id               String       @id @default(cuid())
+  title            String
+  type             String       // "primary" (1 hr) or "secondary" (30 mins)
+  format           String       // "markdown" or "audio"
+  content          String       // The actual markdown content or URL to audio
+  status           String       @default("unread") // "unread", "completed"
+  feedback         String?      // "too_basic", "spot_on", "too_advanced"
+  generatedForDate DateTime     // The date this module was meant for
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  userProfileId    String
+  userProfile      UserProfile  @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+}
+
+model ActivityLog {
+  id               String       @id @default(cuid())
+  date             DateTime
+  modulesCompleted Int          @default(0)
+  timeSpentMinutes Int          @default(0)
+  streakDays       Int          @default(0)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  userProfileId    String
+  userProfile      UserProfile  @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([userProfileId, date])
+}

@@ -1,0 +1,17 @@
+export interface GenerateCurriculumParams {
+  userId: string;
+  baseSkills: string[];
+  projectContext: string;
+  dailyOverrides?: string[];
+  durationMinutes: 30 | 60;
+}
+
+export interface GeneratedCurriculum {
+  title: string;
+  markdownContent: string;
+  suggestedTags: string[];
+}
+
+export interface AIService {
+  generateCurriculum(params: GenerateCurriculumParams): Promise<GeneratedCurriculum>;
+}
