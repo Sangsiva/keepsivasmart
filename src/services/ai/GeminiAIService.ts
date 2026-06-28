@@ -48,7 +48,7 @@ Generate the 1-hour deep dive explicitly focusing on the Primary Focus Topic abo
       }
 
       const response = await this.ai.models.generateContent({
-        model: 'gemini-2.5-pro',
+        model: 'gemini-1.5-pro',
         contents: [
           { role: 'user', parts: [{ text: systemPrompt + '\n\n' + userPrompt }] }
         ],
