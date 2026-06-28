@@ -14,6 +14,7 @@ export default function GenerateButton() {
       const rawSkills = localStorage.getItem('baseSkills') || 'AI, LLMs, System Architecture';
       const baseSkills = rawSkills.split(',').map(s => s.trim());
       const projectContext = localStorage.getItem('projectContext') || 'Building a robust full-stack AI agent.';
+      const apiKey = localStorage.getItem('geminiApiKey') || undefined;
       
       const res = await fetch('/api/generate', {
         method: 'POST',
@@ -21,6 +22,7 @@ export default function GenerateButton() {
         body: JSON.stringify({
           baseSkills,
           projectContext,
+          apiKey,
           durationMinutes: 60,
         })
       });
