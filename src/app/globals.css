@@ -151,3 +151,50 @@ body {
   background-color: #f8fafc;
   font-weight: 600;
 }
+
+/* Code Blocks & Mermaid */
+.code-block-wrapper {
+  margin: 1.5rem 0;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.code-header {
+  background-color: #27272a;
+  color: #a1a1aa;
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  font-family: monospace;
+  display: flex;
+  justify-content: space-between;
+}
+
+.code-body {
+  background-color: #09090b;
+  color: #f4f4f5;
+  padding: 1rem;
+  margin: 0;
+  overflow-x: auto;
+  font-size: 0.9rem;
+  font-family: monospace;
+}
+
+.inline-code {
+  background-color: #f1f5f9;
+  color: #9333ea;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-family: monospace;
+}
+
+.mermaid-wrapper {
+  margin: 2rem 0;
+  display: flex;
+  justify-content: center;
+  background-color: #fafafa;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #e4e4e7;
+}

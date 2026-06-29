@@ -40,7 +40,7 @@ const MermaidChart = ({ chart }: { chart: string }) => {
 
   return (
     <div 
-      className="mermaid-wrapper my-8 flex justify-center bg-zinc-50 p-6 rounded-xl border border-zinc-200"
+      className="mermaid-wrapper"
       ref={ref}
       dangerouslySetInnerHTML={{ __html: svg }} 
     />
@@ -63,18 +63,18 @@ export default function MarkdownRenderer({ content }: { content: string }) {
             }
             
             return match ? (
-              <div className="code-block-wrapper my-4">
-                <div className="code-header bg-zinc-800 text-zinc-400 px-4 py-1 text-xs rounded-t-lg font-mono flex justify-between">
+              <div className="code-block-wrapper">
+                <div className="code-header">
                   <span>{language}</span>
                 </div>
-                <pre className="bg-zinc-950 text-zinc-100 p-4 rounded-b-lg overflow-x-auto text-sm font-mono m-0">
+                <pre className="code-body">
                   <code className={className} {...rest}>
                     {children}
                   </code>
                 </pre>
               </div>
             ) : (
-              <code className="bg-zinc-100 text-purple-600 px-1.5 py-0.5 rounded text-sm font-mono" {...rest}>
+              <code className="inline-code" {...rest}>
                 {children}
               </code>
             );
