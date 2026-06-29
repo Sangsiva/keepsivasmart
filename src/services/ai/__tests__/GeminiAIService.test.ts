@@ -1,40 +1,73 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GeminiAIService } from '../GeminiAIService';
-import { GenerateCurriculumParams } from '../../interfaces/AIService';
+import { GoogleGenAI } from '@google/genai';
 
-// Mocking the future Google Gen AI SDK
+// Mock the external GenAI SDK
 vi.mock('@google/genai', () => {
+  const mockGenerateContent = vi.fn();
   return {
     GoogleGenAI: class {
       models = {
-        generateContent: vi.fn().mockResolvedValue({
-          text: '{"title":"Test Title","markdownContent":"# Test Content","suggestedTags":["Test"]}'
-        })
-      }
-    }
+        generateContent: mockGenerateContent,
+      };
+    },
   };
 });
 
 describe('GeminiAIService', () => {
-  let aiService: GeminiAIService;
+  const mockGenerateContent = new GoogleGenAI({ apiKey: 'dummy' }).models.generateContent as any;
 
   beforeEach(() => {
-    aiService = new GeminiAIService();
+    vi.clearAllMocks();
   });
 
-  it('should generate a curriculum successfully by parsing the LLM JSON response', async () => {
-    const params: GenerateCurriculumParams = {
-      userId: 'user-123',
-      baseSkills: ['AI', 'System Design'],
-      projectContext: 'Building an educational agent',
-      durationMinutes: 60,
-    };
+  it('correctly constructs the payload with a duration limit of 15', async () => {
+    mockGenerateContent.mockResolvedValue({
+      text: JSON.stringify({
+        title: 'Mocked Title',
+        markdownContent: '# Mocked Content',
+        suggestedTags: ['mock'],
+      }),
+    });
 
-    // This test will fail currently because generateCurriculum throws "Not implemented"
-    const result = await aiService.generateCurriculum(params);
+    const aiService = new GeminiAIService('dummy-key');
+    const result = await aiService.generateCurriculum({
+      userId: 'user1',
+      selectedTopic: 'Test Topic',
+      projectContext: 'Test Context',
+      durationMinutes: 15,
+    });
 
-    expect(result.title).toBe('Test Title');
-    expect(result.markdownContent).toBe('# Test Content');
-    expect(result.suggestedTags).toContain('Test');
+    // Verify the mock was called
+    expect(mockGenerateContent).toHaveBeenCalledTimes(1);
+    
+    const callArgs = mockGenerateContent.mock.calls[0][0];
+    
+    // Verify the model is gemini-2.5-pro
+    expect(callArgs.model).toBe('gemini-2.5-pro');
+    
+    // Extract the prompt string
+    const promptParts = callArgs.contents[0].parts[0].text;
+    
+    // Verify our timeout fix is present in the prompt (15 minutes)
+    expect(promptParts).toContain('15 minutes to consume');
+    expect(promptParts).toContain('Test Topic');
+    
+    // Verify the result parses correctly
+    expect(result.title).toBe('Mocked Title');
+  });
+
+  // Test removed: SDK handles responseMimeType='application/json' so raw markdown parsing is not needed.
+
+  it('throws an error if JSON is malformed', async () => {
+    mockGenerateContent.mockResolvedValue({
+      text: '{ malformed json: true }',
+    });
+
+    const aiService = new GeminiAIService('dummy-key');
+    
+    await expect(
+      aiService.generateCurriculum({ userId: 'u', selectedTopic: 't', durationMinutes: 15 })
+    ).rejects.toThrow('Failed to generate curriculum');
   });
 });

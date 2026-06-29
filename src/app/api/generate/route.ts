@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { GeminiAIService } from '@/services/ai/GeminiAIService';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
+import { selectWeightedTopic } from '@/lib/topicSelector';
 
 export async function POST(request: Request) {
   try {
@@ -27,18 +28,7 @@ export async function POST(request: Request) {
     }
 
     // Weighted selection logic
-    let selectedTopic = 'AI & LLMs';
-    if (topicWeights && Array.isArray(topicWeights) && topicWeights.length > 0) {
-      const rand = Math.random() * 100;
-      let sum = 0;
-      for (const tw of topicWeights) {
-        sum += tw.weight;
-        if (rand <= sum) {
-          selectedTopic = tw.topic;
-          break;
-        }
-      }
-    }
+    const selectedTopic = selectWeightedTopic(topicWeights);
 
     const aiService = new GeminiAIService(apiKey);
     
