@@ -1,4 +1,4 @@
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, Type } from '@google/genai';
 import { AIService, GenerateCurriculumParams, GeneratedCurriculum } from '../interfaces/AIService';
 import { buildPromptPipeline } from './PromptPipelines';
 
@@ -46,6 +46,15 @@ export class GeminiAIService implements AIService {
       // We will rely purely on the system prompt instruction to output valid JSON string.
       if (!pipeline.useSearchGrounding) {
         config.responseMimeType = 'application/json';
+        config.responseSchema = {
+          type: Type.OBJECT,
+          properties: {
+            title: { type: Type.STRING },
+            markdownContent: { type: Type.STRING },
+            suggestedTags: { type: Type.ARRAY, items: { type: Type.STRING } }
+          },
+          required: ["title", "markdownContent", "suggestedTags"]
+        };
       } else {
         config.tools = [{ googleSearch: {} }];
       }

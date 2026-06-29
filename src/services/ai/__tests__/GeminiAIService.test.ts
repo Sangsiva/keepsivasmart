@@ -11,6 +11,11 @@ vi.mock('@google/genai', () => {
         generateContent: mockGenerateContent,
       };
     },
+    Type: {
+      OBJECT: 'OBJECT',
+      STRING: 'STRING',
+      ARRAY: 'ARRAY'
+    }
   };
 });
 
