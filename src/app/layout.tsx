@@ -1,11 +1,21 @@
 import './globals.css';
 import Link from 'next/link';
 import { auth, signIn, signOut } from '@/auth';
+import ClientAudioLayout from '@/components/ClientAudioLayout';
 
 export const metadata = {
   title: 'KeepSivaSmart',
   description: 'AI Learning Agent',
   manifest: '/manifest.json', // for next-pwa
+  themeColor: '#ffffff',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'KeepSivaSmart',
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -40,7 +50,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </div>
         </nav>
         <main style={{ padding: '2rem', maxWidth: '1000px', margin: '0 auto' }}>
-          {children}
+          <ClientAudioLayout>
+            {children}
+          </ClientAudioLayout>
         </main>
       </body>
     </html>

@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
+import ShareStreakButton from '@/components/ShareStreakButton';
 
 export default async function Dashboard() {
   const session = await auth();
@@ -30,6 +31,8 @@ export default async function Dashboard() {
           <p style={{ color: '#666', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>Modules Completed</p>
         </div>
       </div>
+      
+      <ShareStreakButton streak={streak} totalModules={totalModules} />
       
       <h2>Activity Heatmap (Last 7 Days)</h2>
       <div style={{ display: 'flex', gap: '15px', padding: '1.5rem', background: '#fafafa', borderRadius: '12px', border: '1px solid #eaeaea' }}>
