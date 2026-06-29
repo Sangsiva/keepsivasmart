@@ -196,6 +196,28 @@ async function testCronApi() {
   }
 }
 
+async function testCompleteApi(id: string) {
+  console.log(`--- TC6.1: POST /api/modules/${id}/complete ---`);
+  try {
+    const res = await fetch(`${APP_URL}/api/modules/${id}/complete`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': sessionCookie
+      }
+    });
+    
+    if (res.ok) {
+      updateReport('TC6.1', '✅ PASS', `Module marked as complete and streak updated`);
+    } else {
+      const errorText = await res.text();
+      updateReport('TC6.1', '❌ FAIL', `Status: ${res.status} - ${errorText}`);
+    }
+  } catch (err: any) {
+    updateReport('TC6.1', '❌ FAIL', err.message);
+  }
+}
+
 async function runQaSuite() {
   console.log('🚀 Starting Full QA API Test Suite...');
   
@@ -212,6 +234,7 @@ async function runQaSuite() {
     if (moduleId) {
       await testFeedbackApi(moduleId);
       await testQuizApi(moduleId);
+      await testCompleteApi(moduleId);
     } else {
       console.log('⚠️ Skipping Feedback & Quiz tests because Generation failed.');
     }

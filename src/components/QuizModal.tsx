@@ -13,9 +13,10 @@ interface QuizModalProps {
   moduleId: string;
   markdownContent: string;
   onClose: () => void;
+  onComplete?: () => void;
 }
 
-export default function QuizModal({ moduleId, markdownContent, onClose }: QuizModalProps) {
+export default function QuizModal({ moduleId, markdownContent, onClose, onComplete }: QuizModalProps) {
   const [loading, setLoading] = useState(true);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -57,6 +58,9 @@ export default function QuizModal({ moduleId, markdownContent, onClose }: QuizMo
   const handleNext = () => {
     setSelectedAnswer(null);
     setShowExplanation(false);
+    if (currentIndex + 1 >= questions.length && onComplete) {
+      onComplete();
+    }
     setCurrentIndex(i => i + 1);
   };
 
