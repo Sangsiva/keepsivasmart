@@ -7,7 +7,7 @@ interface AudioContextType {
   isLoading: boolean;
   currentTrackTitle: string | null;
   rate: number;
-  playTrack: (title: string, markdownContent: string) => Promise<void>;
+  playTrack: (moduleId: string, title: string, markdownContent: string, initialProgress?: number) => Promise<void>;
   togglePlayPause: () => void;
   stopTrack: () => void;
   changeRate: () => void;
@@ -18,9 +18,11 @@ const AudioContext = createContext<AudioContextType | undefined>(undefined);
 export function AudioProvider({ children }: { children: React.ReactNode }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [currentModuleId, setCurrentModuleId] = useState<string | null>(null);
   const [currentTrackTitle, setCurrentTrackTitle] = useState<string | null>(null);
   const [rate, setRate] = useState(1);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const lastSavedProgressRef = useRef<number>(0);
 
   // Clean up markdown before sending to TTS
   const cleanMarkdownForAudio = (md: string) => {
@@ -32,9 +34,9 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       .trim();
   };
 
-  const playTrack = async (title: string, markdownContent: string) => {
+  const playTrack = async (moduleId: string, title: string, markdownContent: string, initialProgress: number = 0) => {
     // If the same track is requested and we have it, just resume
-    if (currentTrackTitle === title && audioRef.current) {
+    if (currentModuleId === moduleId && audioRef.current) {
       if (audioRef.current.paused) {
         audioRef.current.play();
         setIsPlaying(true);
@@ -46,7 +48,9 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     stopTrack();
     
     setIsLoading(true);
+    setCurrentModuleId(moduleId);
     setCurrentTrackTitle(title);
+    lastSavedProgressRef.current = initialProgress;
 
     try {
       const res = await fetch('/api/tts', {
@@ -68,6 +72,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       const audio = new Audio(url);
       
       audio.playbackRate = rate;
+      audio.currentTime = initialProgress;
       audio.onended = () => setIsPlaying(false);
       audio.play();
       
@@ -118,7 +123,9 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       audioRef.current = null;
     }
     setIsPlaying(false);
+    setCurrentModuleId(null);
     setCurrentTrackTitle(null);
+    lastSavedProgressRef.current = 0;
   };
 
   const changeRate = () => {
@@ -130,10 +137,31 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
+    // Sync progress to DB every 5 seconds
+    const interval = setInterval(async () => {
+      if (isPlaying && audioRef.current && currentModuleId) {
+        const currentProgress = Math.floor(audioRef.current.currentTime);
+        // Only save if progress has changed by at least 3 seconds to avoid spam
+        if (Math.abs(currentProgress - lastSavedProgressRef.current) >= 3) {
+          lastSavedProgressRef.current = currentProgress;
+          try {
+            await fetch(`/api/modules/${currentModuleId}/progress`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ progressSeconds: currentProgress })
+            });
+          } catch (err) {
+            console.error('Failed to sync audio progress:', err);
+          }
+        }
+      }
+    }, 5000);
+
     return () => {
+      clearInterval(interval);
       stopTrack();
     };
-  }, []);
+  }, [isPlaying, currentModuleId]);
 
   return (
     <AudioContext.Provider value={{

@@ -63,7 +63,7 @@ export default function ModuleCard({ mod }: { mod: any }) {
         </div>
       </div>
       
-      <AudioPlayer title={mod.title} markdownContent={mod.content} />
+      <AudioPlayer moduleId={mod.id} title={mod.title} markdownContent={mod.content} initialProgress={mod.progressSeconds} />
       
       <MarkdownRenderer content={mod.content} />
       

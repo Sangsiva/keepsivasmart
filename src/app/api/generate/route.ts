@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
 import { selectWeightedTopic } from '@/lib/topicSelector';
 
+export const maxDuration = 300; // Allow up to 5 minutes for generation
+
 export async function POST(request: Request) {
   try {
     const session = await auth();

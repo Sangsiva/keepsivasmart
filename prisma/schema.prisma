@@ -86,6 +86,7 @@ model LearningModule {
   format           String       // "markdown" or "audio"
   content          String       // The actual markdown content or URL to audio
   status           String       @default("unread") // "unread", "completed"
+  progressSeconds  Int          @default(0)
   feedback         String?      // "too_basic", "spot_on", "too_advanced"
   generatedForDate DateTime     // The date this module was meant for
   createdAt        DateTime     @default(now())

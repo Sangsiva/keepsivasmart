@@ -3,11 +3,13 @@
 import { useAudio } from '@/context/AudioContext';
 
 interface AudioPlayerProps {
+  moduleId: string;
   title: string;
   markdownContent: string;
+  initialProgress?: number;
 }
 
-export default function AudioPlayer({ title, markdownContent }: AudioPlayerProps) {
+export default function AudioPlayer({ moduleId, title, markdownContent, initialProgress = 0 }: AudioPlayerProps) {
   const { currentTrackTitle, isPlaying, playTrack, togglePlayPause, isLoading } = useAudio();
 
   const isThisTrackActive = currentTrackTitle === title;
@@ -16,7 +18,7 @@ export default function AudioPlayer({ title, markdownContent }: AudioPlayerProps
     if (isThisTrackActive) {
       togglePlayPause();
     } else {
-      playTrack(title, markdownContent);
+      playTrack(moduleId, title, markdownContent, initialProgress);
     }
   };
 
@@ -34,7 +36,5 @@ export default function AudioPlayer({ title, markdownContent }: AudioPlayerProps
         {isThisTrackActive && isPlaying ? 'Playing globally...' : 'Commute Mode'}
       </span>
     </div>
-  );
-}iv>
   );
 }

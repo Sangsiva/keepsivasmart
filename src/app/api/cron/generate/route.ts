@@ -4,6 +4,8 @@ import { GeminiAIService } from '@/services/ai/GeminiAIService';
 import { selectWeightedTopic } from '@/lib/topicSelector';
 import { Resend } from 'resend';
 
+export const maxDuration = 300; // Allow up to 5 minutes for generation
+
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 // This endpoint is hit by Vercel Cron
@@ -31,12 +33,26 @@ export async function GET(request: Request) {
 
     for (const profile of profiles) {
       try {
-        // Parse the topic weights we synced from settings
         let topicWeights = [];
         try {
           topicWeights = JSON.parse(profile.baseSkills);
         } catch {
           topicWeights = [{ id: '1', topic: profile.baseSkills || 'AI & LLMs', weight: 100 }];
+        }
+
+        // Backlog Policy: Check if user has an unread module generated in the last 48 hours
+        const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
+        const unreadModules = await prisma.learningModule.findFirst({
+          where: {
+            userProfileId: profile.id,
+            status: 'unread',
+            generatedForDate: { gte: fortyEightHoursAgo }
+          }
+        });
+
+        if (unreadModules) {
+          console.log(`[BACKLOG POLICY] Skipping generation for ${profile.user?.email} as they have a recent unread module.`);
+          continue; // Skip this user
         }
 
         const selectedTopic = selectWeightedTopic(topicWeights);
