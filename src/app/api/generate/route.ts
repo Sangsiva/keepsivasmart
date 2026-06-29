@@ -35,9 +35,14 @@ export async function POST(request: Request) {
       where: { userProfileId: user.id },
       orderBy: { createdAt: 'desc' },
       take: 5,
-      select: { title: true }
+      select: { title: true, feedback: true }
     });
+    
+    // Inject memory
     const historicalContext = recentModules.map(m => m.title);
+    
+    // Inject feedback
+    const recentFeedbacks = recentModules.map(m => m.feedback).filter(Boolean) as string[];
 
     const aiService = new GeminiAIService(apiKey);
     
@@ -48,7 +53,8 @@ export async function POST(request: Request) {
       projectContext: projectContext || '',
       dailyOverrides,
       durationMinutes: durationMinutes || 60,
-      historicalContext, // newly added parameter
+      historicalContext, 
+      recentFeedbacks,
     });
 
     // Save the generated module to the database

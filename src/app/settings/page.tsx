@@ -37,7 +37,7 @@ export default function SettingsPage() {
     }
   }, []);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const totalWeight = topics.reduce((sum, t) => sum + t.weight, 0);
     if (totalWeight !== 100) {
       alert(`Total weights must equal 100%. Currently it is ${totalWeight}%`);
@@ -46,7 +46,22 @@ export default function SettingsPage() {
     localStorage.setItem('projectContext', projectContext);
     localStorage.setItem('geminiApiKey', apiKey);
     localStorage.setItem('topicWeights', JSON.stringify(topics));
-    alert('Settings saved locally! They will be used for your next AI generation.');
+    
+    // Sync to backend for Cron job access
+    try {
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          projectContext, 
+          baseSkills: JSON.stringify(topics) // Save the JSON string into baseSkills
+        })
+      });
+      alert('Settings saved successfully! Automated Daily Generation is now configured.');
+    } catch (e) {
+      console.error(e);
+      alert('Settings saved locally, but backend sync failed.');
+    }
   };
 
   const addTopic = () => {

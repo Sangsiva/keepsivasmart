@@ -1,34 +1,23 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import AudioPlayer from '@/components/AudioPlayer';
+import QuizModal from '@/components/QuizModal';
 
 export default function ModuleCard({ mod }: { mod: any }) {
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(mod.feedback || null);
+  const [showQuiz, setShowQuiz] = useState(false);
 
-  // Cleanup speech if component unmounts
-  useEffect(() => {
-    return () => {
-      window.speechSynthesis.cancel();
-    };
-  }, []);
-
-  const toggleSpeech = () => {
-    if (isPlaying) {
-      window.speechSynthesis.cancel();
-      setIsPlaying(false);
-    } else {
-      // Very basic markdown stripper so the bot doesn't read out "hash hash"
-      const cleanText = mod.content.replace(/[#*`_-]/g, '');
-      const utterance = new SpeechSynthesisUtterance(cleanText);
-      
-      // Try to find a good English voice
-      const voices = window.speechSynthesis.getVoices();
-      const preferredVoice = voices.find(v => v.name.includes('Samantha') || v.name.includes('Google US English'));
-      if (preferredVoice) utterance.voice = preferredVoice;
-
-      utterance.onend = () => setIsPlaying(false);
-      window.speechSynthesis.speak(utterance);
-      setIsPlaying(true);
+  const handleFeedback = async (vote: string) => {
+    setFeedback(vote);
+    try {
+      await fetch(`/api/modules/${mod.id}/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feedback: vote })
+      });
+    } catch (e) {
+      console.error("Failed to save feedback", e);
     }
   };
 
@@ -38,28 +27,50 @@ export default function ModuleCard({ mod }: { mod: any }) {
         <h2 style={{ marginTop: 0 }}>
           {mod.title} <br/>
           <span style={{ fontSize: '0.9rem', color: '#888', fontWeight: 'normal' }}>
-            ({mod.type === 'primary' ? '1 Hour Deep Dive' : '30 Min Quick Session'})
+            ({mod.type === 'primary' ? '1 Hour Deep Dive' : '15 Min Quick Session'})
           </span>
         </h2>
         <button 
-          onClick={toggleSpeech} 
-          className="btn-primary" 
-          style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+          onClick={() => setShowQuiz(true)}
+          style={{ padding: '0.5rem 1rem', background: '#9c27b0', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
         >
-          {isPlaying ? '⏹ Stop Audio' : '🔊 Listen (Commute Mode)'}
+          🧠 Test My Knowledge
         </button>
       </div>
+      
+      <AudioPlayer markdownContent={mod.content} />
       
       <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6', color: '#333' }}>
         {mod.content}
       </div>
       
-      <div style={{ marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid #eaeaea' }}>
-        <p style={{ margin: '0 0 1rem 0', fontWeight: 'bold' }}>How was this module?</p>
-        <button style={{ marginRight: '1rem', padding: '0.5rem 1rem', borderRadius: '20px', border: '1px solid #ccc', background: 'transparent', cursor: 'pointer' }}>📉 Too Basic</button>
-        <button style={{ marginRight: '1rem', padding: '0.5rem 1rem', borderRadius: '20px', border: 'none', background: 'var(--primary)', color: 'white', cursor: 'pointer' }}>🎯 Spot On</button>
-        <button style={{ padding: '0.5rem 1rem', borderRadius: '20px', border: '1px solid #ccc', background: 'transparent', cursor: 'pointer' }}>📈 Too Advanced</button>
+      <div style={{ marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid #eaeaea', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <p style={{ margin: '0 0 1rem 0', fontWeight: 'bold' }}>How was this module?</p>
+          <button 
+            onClick={() => handleFeedback('too_basic')}
+            style={{ marginRight: '1rem', padding: '0.5rem 1rem', borderRadius: '20px', border: feedback === 'too_basic' ? 'none' : '1px solid #ccc', background: feedback === 'too_basic' ? 'var(--primary)' : 'transparent', color: feedback === 'too_basic' ? 'white' : 'black', cursor: 'pointer' }}
+          >
+            📉 Too Basic
+          </button>
+          <button 
+            onClick={() => handleFeedback('spot_on')}
+            style={{ marginRight: '1rem', padding: '0.5rem 1rem', borderRadius: '20px', border: feedback === 'spot_on' ? 'none' : '1px solid #ccc', background: feedback === 'spot_on' ? 'var(--primary)' : 'transparent', color: feedback === 'spot_on' ? 'white' : 'black', cursor: 'pointer' }}
+          >
+            🎯 Spot On
+          </button>
+          <button 
+            onClick={() => handleFeedback('too_advanced')}
+            style={{ padding: '0.5rem 1rem', borderRadius: '20px', border: feedback === 'too_advanced' ? 'none' : '1px solid #ccc', background: feedback === 'too_advanced' ? 'var(--primary)' : 'transparent', color: feedback === 'too_advanced' ? 'white' : 'black', cursor: 'pointer' }}
+          >
+            📈 Too Advanced
+          </button>
+        </div>
       </div>
+      
+      {showQuiz && (
+        <QuizModal moduleId={mod.id} markdownContent={mod.content} onClose={() => setShowQuiz(false)} />
+      )}
     </div>
   );
 }

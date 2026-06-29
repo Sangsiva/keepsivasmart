@@ -9,7 +9,8 @@ export function buildPromptPipeline(
   projectContext: string,
   durationMinutes: number,
   historicalContext?: string[],
-  dailyOverrides?: string[]
+  dailyOverrides?: string[],
+  recentFeedbacks?: string[]
 ): PipelineResult {
   const lowerTopic = selectedTopic.toLowerCase();
   
@@ -20,6 +21,19 @@ export function buildPromptPipeline(
   let memoryStr = '';
   if (historicalContext && historicalContext.length > 0) {
     memoryStr = `\\nCRITICAL RULE: DO NOT REPEAT OR INTRODUCE THESE RECENTLY COVERED TOPICS: ${historicalContext.join(', ')}.\\nFocus strictly on new, unlearned subtopics or advanced progressions.`;
+  }
+
+  // Build Feedback Memory
+  let feedbackStr = '';
+  if (recentFeedbacks && recentFeedbacks.length > 0) {
+    const tooBasic = recentFeedbacks.filter(f => f === 'too_basic').length;
+    const tooAdvanced = recentFeedbacks.filter(f => f === 'too_advanced').length;
+    
+    if (tooBasic > tooAdvanced) {
+      feedbackStr = `\\nCRITICAL FEEDBACK: The user found recent modules TOO BASIC. Drastically increase the technical depth, theoretical complexity, and advanced insights of this module!`;
+    } else if (tooAdvanced > tooBasic) {
+      feedbackStr = `\\nCRITICAL FEEDBACK: The user found recent modules TOO ADVANCED. Simplify the language, provide foundational analogies, and focus on practical, easier-to-grasp concepts.`;
+    }
   }
 
   const baseUserPrompt = `
@@ -40,7 +54,7 @@ Format strictly in JSON:
   "markdownContent": "# Title\\n\\nChronological timeline, X/Reddit discourse summaries, and direct source URLs...",
   "suggestedTags": ["news"]
 }
-${memoryStr}`,
+${memoryStr}${feedbackStr}`,
       userPrompt: `${baseUserPrompt}\\nUse Google Search to find the top 3 news items from the last 24-48 hours regarding this topic. Synthesize them into a highly technical briefing.`
     };
   }
@@ -57,7 +71,7 @@ Format strictly in JSON:
   "markdownContent": "# Title\\n\\nSituational case studies, roleplay scenarios, and actionable behavioral frameworks...",
   "suggestedTags": ["soft-skills"]
 }
-${memoryStr}`,
+${memoryStr}${feedbackStr}`,
       userPrompt: `${baseUserPrompt}\\nGenerate a practical, situational guide focusing heavily on scenarios and actionable reflection.`
     };
   }
@@ -74,7 +88,7 @@ Format strictly in JSON:
   "markdownContent": "# Title\\n\\nDeep dive with Mermaid.js diagrams, trade-off matrices, and code snippets...",
   "suggestedTags": ["technical"]
 }
-${memoryStr}`,
+${memoryStr}${feedbackStr}`,
     userPrompt: `${baseUserPrompt}\\nGenerate the deep dive explicitly focusing on advanced, highly-technical insights into this topic.`
   };
 }
