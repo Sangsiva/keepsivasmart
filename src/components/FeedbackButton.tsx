@@ -9,7 +9,10 @@ export default function FeedbackButton() {
   return (
     <>
       <button 
-        onClick={() => setIsOpen(true)}
+        onClick={() => {
+          console.log('Feedback button clicked!');
+          setIsOpen(true);
+        }}
         style={{ 
           background: 'none', 
           border: '1px solid #eaeaea', 

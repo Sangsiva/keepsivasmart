@@ -33,7 +33,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '10px' }}>
             {session?.user ? (
               <>
-                <img src={session.user.image || ''} alt="Avatar" style={{ width: 32, height: 32, borderRadius: '50%' }} />
+                {session.user.image && <img src={session.user.image} alt="Avatar" style={{ width: 32, height: 32, borderRadius: '50%' }} />}
                 <form action={async () => {
                   'use server';
                   await signOut();
