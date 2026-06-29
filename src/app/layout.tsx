@@ -2,6 +2,7 @@ import './globals.css';
 import Link from 'next/link';
 import { auth, signIn, signOut } from '@/auth';
 import ClientAudioLayout from '@/components/ClientAudioLayout';
+import FeedbackButton from '@/components/FeedbackButton';
 
 export const metadata = {
   title: 'KeepSivaSmart',
@@ -28,6 +29,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <Link href="/dashboard">Dashboard</Link>
           <Link href="/learning-hub">Learning Hub</Link>
           <Link href="/settings">Settings</Link>
+          <FeedbackButton />
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '10px' }}>
             {session?.user ? (
               <>

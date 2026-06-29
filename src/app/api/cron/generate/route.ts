@@ -40,9 +40,9 @@ export async function GET(request: Request) {
           topicWeights = [{ id: '1', topic: profile.baseSkills || 'AI & LLMs', weight: 100 }];
         }
 
-        // Backlog Policy: Check if user has an unread module generated in the last 48 hours
+        // Backlog Policy: Check if user has unread modules generated in the last 48 hours
         const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
-        const unreadModules = await prisma.learningModule.findFirst({
+        const unreadModulesCount = await prisma.learningModule.count({
           where: {
             userProfileId: profile.id,
             status: 'unread',
@@ -50,8 +50,8 @@ export async function GET(request: Request) {
           }
         });
 
-        if (unreadModules) {
-          console.log(`[BACKLOG POLICY] Skipping generation for ${profile.user?.email} as they have a recent unread module.`);
+        if (unreadModulesCount >= 2) {
+          console.log(`[BACKLOG POLICY] Skipping generation for ${profile.user?.email} as they have ${unreadModulesCount} recent unread modules.`);
           continue; // Skip this user
         }
 

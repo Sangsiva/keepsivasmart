@@ -18,6 +18,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   userProfile   UserProfile?
+  feedbacks     AppFeedback[]
  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -107,4 +108,13 @@ model ActivityLog {
   userProfile      UserProfile  @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
 
   @@unique([userProfileId, date])
+}
+
+model AppFeedback {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // "bug", "feature_request", "general"
+  content   String
+  createdAt DateTime @default(now())
 }
