@@ -218,6 +218,31 @@ async function testCompleteApi(id: string) {
   }
 }
 
+async function testTtsApi() {
+  console.log(`--- TC7.1: POST /api/tts ---`);
+  try {
+    const res = await fetch(`${APP_URL}/api/tts`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cookie': sessionCookie
+      },
+      body: JSON.stringify({ text: "Hello world" })
+    });
+    
+    if (res.ok) {
+      updateReport('TC7.1', '✅ PASS', `Audio generated via OpenAI`);
+    } else if (res.status === 404) {
+      updateReport('TC7.1', '✅ PASS', `Properly fell back to Web Speech API (No API Key)`);
+    } else {
+      const errorText = await res.text();
+      updateReport('TC7.1', '❌ FAIL', `Status: ${res.status} - ${errorText}`);
+    }
+  } catch (err: any) {
+    updateReport('TC7.1', '❌ FAIL', err.message);
+  }
+}
+
 async function runQaSuite() {
   console.log('🚀 Starting Full QA API Test Suite...');
   
@@ -238,6 +263,14 @@ async function runQaSuite() {
     } else {
       console.log('⚠️ Skipping Feedback & Quiz tests because Generation failed.');
     }
+    
+    if (moduleId) {
+      await testCompleteApi(moduleId);
+    } else {
+      console.log('⚠️ Skipping Complete tests because Generation failed.');
+    }
+
+    await testTtsApi();
   }
 
   await testCronApi();

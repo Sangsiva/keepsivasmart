@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { GeminiAIService } from '@/services/ai/GeminiAIService';
 import { selectWeightedTopic } from '@/lib/topicSelector';
+import { Resend } from 'resend';
+
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 // This endpoint is hit by Vercel Cron
 export async function GET(request: Request) {
@@ -20,8 +23,10 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Missing GEMINI_API_KEY env' }, { status: 500 });
     }
 
-    // 2. Fetch all profiles
-    const profiles = await prisma.userProfile.findMany();
+    // 2. Fetch all profiles with User included to get emails
+    const profiles = await prisma.userProfile.findMany({
+      include: { user: true }
+    });
     let generatedCount = 0;
 
     for (const profile of profiles) {
@@ -59,7 +64,7 @@ export async function GET(request: Request) {
         });
 
         // Save to database
-        await prisma.learningModule.create({
+        const savedModule = await prisma.learningModule.create({
           data: {
             title: curriculum.title,
             content: curriculum.markdownContent,
@@ -71,6 +76,28 @@ export async function GET(request: Request) {
           }
         });
         
+        // 3. Send Notification Email
+        if (profile.user?.email) {
+          if (resend) {
+            await resend.emails.send({
+              from: 'KeepSivaSmart <notifications@keepsivasmart.com>', // Use a verified domain in production
+              to: profile.user.email,
+              subject: `Your Daily Briefing: ${curriculum.title}`,
+              html: `
+                <div style="font-family: sans-serif; padding: 20px;">
+                  <h2>Hi ${profile.user.name || 'there'},</h2>
+                  <p>Your daily learning module is ready:</p>
+                  <h3>${curriculum.title}</h3>
+                  <p>Open KeepSivaSmart to read the module or listen to the podcast!</p>
+                  <a href="${process.env.APP_URL || 'http://localhost:3000'}/learning-hub" style="display: inline-block; padding: 10px 20px; background: #4caf50; color: white; text-decoration: none; border-radius: 5px;">Go to Learning Hub</a>
+                </div>
+              `
+            });
+          } else {
+            console.log(`[RESEND MOCK] Sent email to ${profile.user.email} for module ${savedModule.id}`);
+          }
+        }
+
         generatedCount++;
       } catch (e) {
         console.error(`Cron generation failed for user ${profile.userId}:`, e);
