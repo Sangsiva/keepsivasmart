@@ -37,7 +37,7 @@ export default function GenerateButton() {
           topicWeights,
           projectContext,
           apiKey,
-          durationMinutes: 60,
+          durationMinutes: 15,
         })
       });
       
@@ -61,7 +61,7 @@ export default function GenerateButton() {
         Ready for your daily learning session? Let the agent curate your curriculum.
       </p>
       <button className="btn-primary" onClick={handleGenerate} disabled={loading}>
-        {loading ? 'Curating 1-Hour Deep Dive... (Takes ~30s)' : '✨ Generate Today\'s Module'}
+        {loading ? 'Curating 15-Minute Deep Dive... (Takes ~30s)' : '✨ Generate Today\'s Module'}
       </button>
     </div>
   );
