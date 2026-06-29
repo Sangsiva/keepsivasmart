@@ -30,6 +30,15 @@ export async function POST(request: Request) {
     // Weighted selection logic
     const selectedTopic = selectWeightedTopic(topicWeights);
 
+    // Fetch historical context (last 5 modules) to prevent repetition
+    const recentModules = await prisma.learningModule.findMany({
+      where: { userProfileId: user.id },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+      select: { title: true }
+    });
+    const historicalContext = recentModules.map(m => m.title);
+
     const aiService = new GeminiAIService(apiKey);
     
     // Generate the curriculum via Gemini
@@ -39,6 +48,7 @@ export async function POST(request: Request) {
       projectContext: projectContext || '',
       dailyOverrides,
       durationMinutes: durationMinutes || 60,
+      historicalContext, // newly added parameter
     });
 
     // Save the generated module to the database

@@ -4,6 +4,7 @@ export interface GenerateCurriculumParams {
   projectContext: string;
   dailyOverrides?: string[];
   durationMinutes: 30 | 60;
+  historicalContext?: string[];
 }
 
 export interface GeneratedCurriculum {

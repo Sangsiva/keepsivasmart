@@ -1,5 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
 import { AIService, GenerateCurriculumParams, GeneratedCurriculum } from '../interfaces/AIService';
+import { buildPromptPipeline } from './PromptPipelines';
 
 export class GeminiAIService implements AIService {
   private ai: GoogleGenAI | null = null;
@@ -24,38 +25,34 @@ export class GeminiAIService implements AIService {
       };
     }
 
-    const systemPrompt = `You are an expert AI curriculum curator for an AI & LLM Technical Architect Manager. 
-Your goal is to generate a highly technical, deep-dive learning module.
-The module should take approximately ${durationMinutes} minutes to consume.
-Output strictly in JSON format matching this schema:
-{
-  "title": "Module Title",
-  "markdownContent": "# Title\\n\\nDetailed content...",
-  "suggestedTags": ["tag1", "tag2"]
-}`;
-
-    const userPrompt = `
-Today's Primary Focus Topic: ${selectedTopic}
-Current Project Context: ${projectContext}
-Daily Overrides (Topics to focus on today): ${dailyOverrides?.join(', ') || 'None'}
-
-Generate the 1-hour deep dive explicitly focusing on the Primary Focus Topic above. 
-    `;
+    const pipeline = buildPromptPipeline(
+      selectedTopic,
+      projectContext || '',
+      durationMinutes,
+      params.historicalContext,
+      dailyOverrides
+    );
 
     try {
       if (!this.ai) {
         throw new Error('GoogleGenAI client not initialized.');
       }
 
+      const config: any = {
+        temperature: 0.7,
+        responseMimeType: 'application/json',
+      };
+
+      if (pipeline.useSearchGrounding) {
+        config.tools = [{ googleSearch: {} }];
+      }
+
       const response = await this.ai.models.generateContent({
         model: 'gemini-2.5-pro',
         contents: [
-          { role: 'user', parts: [{ text: systemPrompt + '\n\n' + userPrompt }] }
+          { role: 'user', parts: [{ text: pipeline.systemPrompt + '\n\n' + pipeline.userPrompt }] }
         ],
-        config: {
-          temperature: 0.7,
-          responseMimeType: 'application/json',
-        }
+        config
       });
 
       if (!response.text) {
