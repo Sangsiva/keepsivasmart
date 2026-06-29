@@ -48,12 +48,8 @@ Daily Overrides (Topics to focus on today): ${dailyOverrides?.join(', ') || 'Non
       systemPrompt: `You are an expert AI curator for an AI & LLM Technical Architect Manager. 
 Your goal is to generate an Executive News Briefing.
 The module should take approximately ${durationMinutes} minutes to consume.
-Format strictly in JSON:
-{
-  "title": "Module Title",
-  "markdownContent": "# Title\\n\\nChronological timeline, X/Reddit discourse summaries, and direct source URLs...",
-  "suggestedTags": ["news"]
-}
+Format strictly in Markdown. Start with a single "# [Title]" heading on the first line. 
+Then provide the chronological timeline, X/Reddit discourse summaries, and direct source URLs.
 ${memoryStr}${feedbackStr}`,
       userPrompt: `${baseUserPrompt}\\nUse Google Search to find the top 3 news items from the last 24-48 hours regarding this topic. Synthesize them into a highly technical briefing.`
     };

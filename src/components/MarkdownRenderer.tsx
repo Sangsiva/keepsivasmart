@@ -1,0 +1,88 @@
+'use client';
+
+import React, { useEffect, useRef, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import mermaid from 'mermaid';
+
+// Initialize mermaid
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'base',
+  themeVariables: {
+    fontFamily: 'Inter, sans-serif',
+    primaryColor: '#f4f4f5',
+    primaryTextColor: '#18181b',
+    primaryBorderColor: '#e4e4e7',
+    lineColor: '#71717a',
+    secondaryColor: '#f3e8ff',
+    tertiaryColor: '#ffffff'
+  }
+});
+
+const MermaidChart = ({ chart }: { chart: string }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [svg, setSvg] = useState<string>('');
+
+  useEffect(() => {
+    const renderChart = async () => {
+      try {
+        const id = `mermaid-chart-${Math.random().toString(36).substring(2, 9)}`;
+        const { svg: renderedSvg } = await mermaid.render(id, chart);
+        setSvg(renderedSvg);
+      } catch (error) {
+        console.error("Failed to render mermaid chart", error);
+        setSvg('<div style="color: red; padding: 1rem; border: 1px solid red;">Failed to render diagram. Syntax error in Mermaid code.</div>');
+      }
+    };
+    if (chart) renderChart();
+  }, [chart]);
+
+  return (
+    <div 
+      className="mermaid-wrapper my-8 flex justify-center bg-zinc-50 p-6 rounded-xl border border-zinc-200"
+      ref={ref}
+      dangerouslySetInnerHTML={{ __html: svg }} 
+    />
+  );
+};
+
+export default function MarkdownRenderer({ content }: { content: string }) {
+  return (
+    <div className="markdown-content">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          code(props) {
+            const { children, className, node, ...rest } = props;
+            const match = /language-(\w+)/.exec(className || '');
+            const language = match ? match[1] : '';
+            
+            if (language === 'mermaid') {
+              return <MermaidChart chart={String(children).replace(/\n$/, '')} />;
+            }
+            
+            return match ? (
+              <div className="code-block-wrapper my-4">
+                <div className="code-header bg-zinc-800 text-zinc-400 px-4 py-1 text-xs rounded-t-lg font-mono flex justify-between">
+                  <span>{language}</span>
+                </div>
+                <pre className="bg-zinc-950 text-zinc-100 p-4 rounded-b-lg overflow-x-auto text-sm font-mono m-0">
+                  <code className={className} {...rest}>
+                    {children}
+                  </code>
+                </pre>
+              </div>
+            ) : (
+              <code className="bg-zinc-100 text-purple-600 px-1.5 py-0.5 rounded text-sm font-mono" {...rest}>
+                {children}
+              </code>
+            );
+          }
+        }}
+      >
+        {content}
+      </ReactMarkdown>
+    </div>
+  );
+}

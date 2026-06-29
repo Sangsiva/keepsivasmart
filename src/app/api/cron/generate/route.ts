@@ -53,7 +53,7 @@ export async function GET(request: Request) {
           userId: profile.userId,
           selectedTopic,
           projectContext: profile.projectContext || '',
-          durationMinutes: 15, // Cron default
+          durationMinutes: 30, // Cron default
           historicalContext,
           recentFeedbacks,
         });

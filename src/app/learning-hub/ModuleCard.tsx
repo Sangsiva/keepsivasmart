@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import AudioPlayer from '@/components/AudioPlayer';
 import QuizModal from '@/components/QuizModal';
+import MarkdownRenderer from '@/components/MarkdownRenderer';
 
 export default function ModuleCard({ mod }: { mod: any }) {
   const [feedback, setFeedback] = useState<string | null>(mod.feedback || null);
@@ -40,9 +41,7 @@ export default function ModuleCard({ mod }: { mod: any }) {
       
       <AudioPlayer markdownContent={mod.content} />
       
-      <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6', color: '#333' }}>
-        {mod.content}
-      </div>
+      <MarkdownRenderer content={mod.content} />
       
       <div style={{ marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid #eaeaea', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>

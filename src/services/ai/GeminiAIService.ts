@@ -40,10 +40,13 @@ export class GeminiAIService implements AIService {
 
       const config: any = {
         temperature: 0.7,
-        responseMimeType: 'application/json',
       };
 
-      if (pipeline.useSearchGrounding) {
+      // The Gemini API does not allow 'application/json' responseMimeType when tools are active.
+      // We will rely purely on the system prompt instruction to output valid JSON string.
+      if (!pipeline.useSearchGrounding) {
+        config.responseMimeType = 'application/json';
+      } else {
         config.tools = [{ googleSearch: {} }];
       }
 
@@ -59,8 +62,32 @@ export class GeminiAIService implements AIService {
         throw new Error('No text returned from Gemini API');
       }
 
-      const parsed: GeneratedCurriculum = JSON.parse(response.text);
-      return parsed;
+      let cleanText = response.text.trim();
+      
+      if (!pipeline.useSearchGrounding) {
+        if (cleanText.startsWith('```json')) cleanText = cleanText.substring(7);
+        else if (cleanText.startsWith('```')) cleanText = cleanText.substring(3);
+        if (cleanText.endsWith('```')) cleanText = cleanText.slice(0, -3);
+        cleanText = cleanText.trim();
+        
+        try {
+          const parsed: GeneratedCurriculum = JSON.parse(cleanText);
+          return parsed;
+        } catch (error) {
+          console.error("Failed to parse AI JSON:", cleanText);
+          throw new Error("Invalid JSON format from AI");
+        }
+      } else {
+        // Search Grounding pipeline outputs raw markdown to prevent JSON escape character errors
+        const titleMatch = cleanText.match(/^#\\s+(.*)$/m);
+        const title = titleMatch ? titleMatch[1].trim() : 'Executive News Briefing';
+        
+        return {
+          title,
+          markdownContent: cleanText,
+          suggestedTags: ['news', 'latest']
+        };
+      }
     } catch (error) {
       console.error('Failed to generate curriculum', error);
       throw new Error('Failed to generate curriculum');
