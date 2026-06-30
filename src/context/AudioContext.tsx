@@ -42,6 +42,7 @@ export function AudioProvider({ children, hasPremiumTTS = null }: { children: Re
   const currentChunkIndexRef = useRef<number>(0);
   const fallbackUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const fallbackPlaybackIdRef = useRef<number>(0);
+  const fallbackLastTickRef = useRef<number>(0);
 
   useEffect(() => {
     // If the server didn't pass it, check via API
@@ -82,6 +83,7 @@ export function AudioProvider({ children, hasPremiumTTS = null }: { children: Re
         audioRef.current.play();
         setIsPlaying(true);
       } else if (isFallbackRef.current && !isPlaying) {
+        fallbackLastTickRef.current = Date.now();
         window.speechSynthesis.resume();
         setIsPlaying(true);
       }
@@ -197,17 +199,21 @@ export function AudioProvider({ children, hasPremiumTTS = null }: { children: Re
         
         const voices = window.speechSynthesis.getVoices();
         if (voices.length > 0) {
-          const englishVoice = voices.find(v => v.lang.startsWith('en'));
-          if (englishVoice) utterance.voice = englishVoice;
+          // Read the user's preferred TTS voice to try and match the gender in Demo Mode
+          const preferredVoice = localStorage.getItem('ttsVoice') || 'alloy';
+          const isMale = ['echo', 'fable', 'onyx'].includes(preferredVoice);
+          
+          let matchedVoice = voices.find(v => v.lang.startsWith('en'));
+          if (isMale) {
+             const maleVoice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Daniel') || v.name.includes('Alex') || v.name.includes('Arthur') || v.name.includes('Fred') || v.name.includes('Rishi')));
+             if (maleVoice) matchedVoice = maleVoice;
+          } else {
+             const femaleVoice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Samantha') || v.name.includes('Victoria') || v.name.includes('Karen')));
+             if (femaleVoice) matchedVoice = femaleVoice;
+          }
+          
+          if (matchedVoice) utterance.voice = matchedVoice;
         }
-
-        utterance.onboundary = (e) => {
-          if (!isFallbackRef.current || fallbackPlaybackIdRef.current !== currentPlaybackId) return;
-          const currentFraction = (totalCharsBefore + e.charIndex) / totalChars;
-          const newTime = currentFraction * estDuration;
-          setCurrentTime(newTime);
-          currentTimeRef.current = newTime;
-        };
 
         utterance.onend = () => {
           totalCharsBefore += chunk.length;
@@ -263,6 +269,7 @@ export function AudioProvider({ children, hasPremiumTTS = null }: { children: Re
     currentChunkIndexRef.current = chunkIndex;
     setIsLoading(false);
     setIsPlaying(true);
+    fallbackLastTickRef.current = Date.now();
     
     // Execute loop completely asynchronously but preserving object lifecycles
     runFallbackPlayback(chunks, chunkIndex, estDuration);
@@ -274,6 +281,7 @@ export function AudioProvider({ children, hasPremiumTTS = null }: { children: Re
         window.speechSynthesis.pause();
         setIsPlaying(false);
       } else {
+        fallbackLastTickRef.current = Date.now();
         window.speechSynthesis.resume();
         setIsPlaying(true);
       }
@@ -354,6 +362,20 @@ export function AudioProvider({ children, hasPremiumTTS = null }: { children: Re
   useEffect(() => {
     const interval = setInterval(async () => {
       if (isPlaying && currentModuleId) {
+        
+        // Manual clock tick for fallback
+        if (isFallbackRef.current) {
+          const now = Date.now();
+          const deltaSeconds = (now - fallbackLastTickRef.current) / 1000;
+          fallbackLastTickRef.current = now;
+          
+          if (deltaSeconds > 0 && deltaSeconds < 2) { // prevent huge jumps
+            const newTime = currentTimeRef.current + (deltaSeconds * rateRef.current);
+            setCurrentTime(newTime);
+            currentTimeRef.current = newTime;
+          }
+        }
+
         const currentProgress = Math.floor(currentTimeRef.current);
         if (Math.abs(currentProgress - lastSavedProgressRef.current) >= 3) {
           lastSavedProgressRef.current = currentProgress;
@@ -369,7 +391,7 @@ export function AudioProvider({ children, hasPremiumTTS = null }: { children: Re
           }
         }
       }
-    }, 5000);
+    }, 500); // Check every 500ms
 
     return () => {
       clearInterval(interval);
