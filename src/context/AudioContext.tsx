@@ -67,8 +67,10 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     
     // Synchronously unlock SpeechSynthesis engine before the async fetch!
     // Browsers block TTS if it's not initiated by a direct user gesture.
-    const unlockUtterance = new SpeechSynthesisUtterance('');
+    // Use a space ' ' instead of empty string '' which crashes some browsers.
+    const unlockUtterance = new SpeechSynthesisUtterance(' ');
     unlockUtterance.volume = 0;
+    // Only speak if not already cancelled in the same tick
     window.speechSynthesis.speak(unlockUtterance);
     
     setIsLoading(true);
@@ -124,7 +126,9 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 
   const playFallback = (content: string, initialProgress: number = 0) => {
     isFallbackRef.current = true;
-    window.speechSynthesis.cancel();
+    
+    // Do NOT cancel() here again, as stopTrack already handled it.
+    // Calling cancel() immediately before speak() causes silent failures on macOS/Safari.
     
     const text = cleanMarkdownForAudio(content);
     // Split by sentence markers to prevent silent failures on long text, ensuring we don't drop text without punctuation
@@ -155,7 +159,11 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     
     currentChunkIndexRef.current = chunkIndex;
     setIsLoading(false);
-    playNextChunk();
+    
+    // Add a tiny delay to ensure any previous cancel() has fully flushed from the OS speech daemon.
+    setTimeout(() => {
+      playNextChunk();
+    }, 50);
   };
 
   const playNextChunk = () => {
@@ -225,7 +233,10 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   };
 
   const stopTrack = () => {
-    window.speechSynthesis.cancel();
+    // Only cancel if it's actually speaking to avoid breaking the utterance queue
+    if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+      window.speechSynthesis.cancel();
+    }
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;

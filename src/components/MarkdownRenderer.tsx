@@ -31,7 +31,7 @@ const MermaidChart = ({ chart }: { chart: string }) => {
         const { svg: renderedSvg } = await mermaid.render(id, chart);
         setSvg(renderedSvg);
       } catch (error) {
-        console.warn("Failed to render mermaid chart", error);
+        // console.warn("Failed to render mermaid chart", error);
         const errorSvg = document.getElementById('d' + id);
         if (errorSvg) {
           errorSvg.remove();
