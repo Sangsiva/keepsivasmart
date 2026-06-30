@@ -14,6 +14,7 @@ interface AudioContextType {
   stopTrack: () => void;
   changeRate: () => void;
   seekTo: (time: number) => void;
+  moduleProgress: Record<string, number>;
 }
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
@@ -27,6 +28,7 @@ export function AudioProvider({ children, hasPremiumTTS = null }: { children: Re
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isTTSConfigured, setIsTTSConfigured] = useState<boolean | null>(hasPremiumTTS);
+  const [moduleProgress, setModuleProgress] = useState<Record<string, number>>({});
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const lastSavedProgressRef = useRef<number>(0);
@@ -127,9 +129,6 @@ export function AudioProvider({ children, hasPremiumTTS = null }: { children: Re
       const audio = new Audio(url);
       
       audio.playbackRate = rateRef.current;
-      audio.currentTime = initialProgress;
-      setCurrentTime(initialProgress);
-      currentTimeRef.current = initialProgress;
       
       audio.onended = () => setIsPlaying(false);
       audio.ontimeupdate = () => {
@@ -139,6 +138,10 @@ export function AudioProvider({ children, hasPremiumTTS = null }: { children: Re
       audio.onloadedmetadata = () => {
         setDuration(audio.duration);
         durationRef.current = audio.duration;
+        // Fix: Set currentTime ONLY after metadata is loaded so the browser knows the duration
+        audio.currentTime = initialProgress;
+        setCurrentTime(initialProgress);
+        currentTimeRef.current = initialProgress;
       };
       audio.play();
       
@@ -354,6 +357,7 @@ export function AudioProvider({ children, hasPremiumTTS = null }: { children: Re
         const currentProgress = Math.floor(currentTimeRef.current);
         if (Math.abs(currentProgress - lastSavedProgressRef.current) >= 3) {
           lastSavedProgressRef.current = currentProgress;
+          setModuleProgress(prev => ({ ...prev, [currentModuleId]: currentProgress }));
           try {
             await fetch(`/api/modules/${currentModuleId}/progress`, {
               method: 'PATCH',
@@ -384,7 +388,8 @@ export function AudioProvider({ children, hasPremiumTTS = null }: { children: Re
       togglePlayPause,
       stopTrack,
       changeRate,
-      seekTo
+      seekTo,
+      moduleProgress
     }}>
       {children}
     </AudioContext.Provider>

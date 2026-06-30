@@ -10,9 +10,12 @@ interface AudioPlayerProps {
 }
 
 export default function AudioPlayer({ moduleId, title, markdownContent, initialProgress = 0 }: AudioPlayerProps) {
-  const { currentTrackTitle, isPlaying, playTrack, togglePlayPause, isLoading } = useAudio();
+  const { currentTrackTitle, isPlaying, playTrack, togglePlayPause, isLoading, moduleProgress } = useAudio();
 
   const isThisTrackActive = currentTrackTitle === title;
+  
+  // Use the global context progress if we've played it this session, otherwise fallback to DB initial progress
+  const activeProgress = moduleProgress[moduleId] ?? initialProgress;
 
   const handlePlayClick = () => {
     if (isThisTrackActive) {
@@ -23,7 +26,7 @@ export default function AudioPlayer({ moduleId, title, markdownContent, initialP
   };
 
   const handleResumeClick = () => {
-    playTrack(moduleId, title, markdownContent, initialProgress);
+    playTrack(moduleId, title, markdownContent, activeProgress);
   };
 
   const formatTime = (seconds: number) => {
@@ -42,12 +45,12 @@ export default function AudioPlayer({ moduleId, title, markdownContent, initialP
         {isThisTrackActive && isLoading ? '⏳ Loading...' : (isThisTrackActive && isPlaying) ? '⏸ Pause' : '▶️ Listen from Start'}
       </button>
       
-      {!isThisTrackActive && initialProgress > 0 && (
+      {!isThisTrackActive && activeProgress > 0 && (
         <button 
           onClick={handleResumeClick}
           style={{ padding: '0.25rem 0.75rem', background: 'var(--secondary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
         >
-          📖 Resume from {formatTime(initialProgress)}
+          📖 Resume from {formatTime(activeProgress)}
         </button>
       )}
       
