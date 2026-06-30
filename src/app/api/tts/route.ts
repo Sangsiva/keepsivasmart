@@ -24,18 +24,10 @@ export async function POST(request: Request) {
       apiKey: process.env.OPENAI_API_KEY,
     });
 
-    // Clean up markdown before sending to TTS
-    const cleanText = text
-      .replace(/#/g, '')
-      .replace(/\*/g, '')
-      .replace(/`/g, '')
-      .replace(/\[(.*?)\]\(.*?\)/g, '$1') // Remove markdown links but keep text
-      .trim();
-
     const mp3 = await openai.audio.speech.create({
       model: 'tts-1',
       voice: 'alloy',
-      input: cleanText,
+      input: text,
     });
 
     const buffer = Buffer.from(await mp3.arrayBuffer());

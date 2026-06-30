@@ -53,12 +53,24 @@ export function AudioProvider({ children, hasPremiumTTS = null }: { children: Re
 
   // Clean up markdown before sending to TTS
   const cleanMarkdownForAudio = (md: string) => {
-    return md
+    let clean = md;
+    
+    // Replace mermaid blocks with auditory cue
+    clean = clean.replace(/```mermaid[\s\S]*?```/g, '. [Diagram displayed on screen]. ');
+    
+    // Replace other code blocks with auditory cue (both with and without language tags)
+    clean = clean.replace(/```[a-zA-Z]*\n[\s\S]*?```/g, '. [Code snippet displayed on screen]. ');
+    clean = clean.replace(/```[\s\S]*?```/g, '. [Code snippet displayed on screen]. ');
+    
+    // Clean up remaining markdown syntax
+    clean = clean
       .replace(/#/g, '')
       .replace(/\*/g, '')
-      .replace(/`/g, '')
-      .replace(/\[(.*?)\]\(.*?\)/g, '$1')
+      .replace(/`(.*?)`/g, '$1') // Inline code removes backticks but keeps text
+      .replace(/\[(.*?)\]\(.*?\)/g, '$1') // Links keep only their text
       .trim();
+      
+    return clean;
   };
 
   const playTrack = async (moduleId: string, title: string, markdownContent: string, initialProgress: number = 0) => {
@@ -92,10 +104,11 @@ export function AudioProvider({ children, hasPremiumTTS = null }: { children: Re
     }
 
     try {
+      const cleanText = cleanMarkdownForAudio(markdownContent);
       const res = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: markdownContent })
+        body: JSON.stringify({ text: cleanText })
       });
 
       if (res.status === 404) {
