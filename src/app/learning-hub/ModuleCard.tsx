@@ -73,7 +73,7 @@ export default function ModuleCard({ mod }: { mod: any }) {
     
     let currentNode = walker.nextNode();
     while (currentNode) {
-      const len = currentNode.textContent?.trim().length || 0;
+      const len = currentNode.textContent?.length || 0; // Use exact length to map offsets
       if (len > 0) {
         textNodes.push({ node: currentNode, len });
         totalChars += len;
@@ -86,21 +86,39 @@ export default function ModuleCard({ mod }: { mod: any }) {
     const targetChar = progressPercentage * totalChars;
     let charCount = 0;
     let targetNode: Node | null = null;
+    let offsetInNode = 0;
     
     for (const { node, len } of textNodes) {
-      charCount += len;
-      if (charCount >= targetChar) {
+      if (charCount + len >= targetChar) {
         targetNode = node;
+        offsetInNode = Math.floor(targetChar - charCount);
         break;
       }
+      charCount += len;
     }
     
-    if (targetNode && targetNode !== lastScrolledNode.current && targetNode.parentElement) {
-      lastScrolledNode.current = targetNode;
-      targetNode.parentElement.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center'
-      });
+    if (targetNode) {
+      try {
+        const range = document.createRange();
+        const safeOffset = Math.min(Math.max(0, offsetInNode), targetNode.textContent!.length - 1);
+        range.setStart(targetNode, safeOffset);
+        range.setEnd(targetNode, safeOffset + 1);
+        const rect = range.getBoundingClientRect();
+        
+        // rect.top is relative to the viewport
+        const absoluteY = window.scrollY + rect.top;
+        const screenCenterY = window.scrollY + window.innerHeight / 2;
+        
+        // If the spoken word drifts more than 100px from the center of the screen, smooth scroll to re-center it!
+        if (Math.abs(absoluteY - screenCenterY) > 100) {
+          window.scrollTo({
+            top: absoluteY - window.innerHeight / 2,
+            behavior: 'smooth'
+          });
+        }
+      } catch (e) {
+        // Silently ignore range errors during DOM mutations
+      }
     }
   }, [currentTime, duration, isThisTrackActive, isPlaying, autoScroll]);
 

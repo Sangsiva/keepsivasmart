@@ -119,4 +119,39 @@ test.describe('Learning Hub Page', () => {
     const btnText = await resumeBtn.textContent();
     expect(btnText).toContain('Resume from');
   });
+
+  test('should display Sync to Audio button when user manually scrolls during playback', async ({ page }) => {
+    await page.goto('/learning-hub');
+
+    const listenButton = page.getByRole('button', { name: '▶️ Listen from Start' }).first();
+    if (await listenButton.count() === 0) {
+      test.skip();
+    }
+    
+    // Mock TTS API to force fallback
+    await page.route('**/api/tts', async (route) => {
+      await route.fulfill({ status: 404, body: '{}' }); 
+    });
+
+    // Start playing
+    await listenButton.click();
+    
+    // Wait for a second so audio starts "playing"
+    await page.waitForTimeout(1000);
+    
+    // Simulate manual user scroll by dispatching a wheel event on the window
+    await page.evaluate(() => {
+      window.dispatchEvent(new WheelEvent('wheel', { deltaY: 100 }));
+    });
+    
+    // The "Sync to Audio" button should appear
+    const syncButton = page.getByRole('button', { name: '↓ Sync to Audio' });
+    await expect(syncButton).toBeVisible();
+    
+    // Click the sync button
+    await syncButton.click();
+    
+    // The button should disappear because auto-scroll is re-enabled
+    await expect(syncButton).toBeHidden();
+  });
 });
