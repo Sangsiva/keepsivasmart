@@ -59,75 +59,54 @@ export default function ModuleCard({ mod }: { mod: any }) {
     }
   }, [isPlaying, isThisTrackActive]);
 
-  // Perform precise character-level auto-scrolling
+  // Perform spatial auto-scrolling
   useEffect(() => {
     if (!isThisTrackActive || !isPlaying || !autoScroll || !markdownContainerRef.current) return;
     if (!duration || duration <= 0) return;
 
     const progressPercentage = currentTime / duration;
+    const container = markdownContainerRef.current;
     
-    // Walk all text nodes to find the one corresponding to the audio progress
-    const walker = document.createTreeWalker(
-      markdownContainerRef.current,
-      NodeFilter.SHOW_TEXT,
-      null
-    );
+    // Find all elements that do NOT contain spoken text (diagrams and code blocks)
+    const silentElements = Array.from(container.querySelectorAll('.mermaid-wrapper, .code-block-wrapper'));
     
-    let totalChars = 0;
-    const textNodes: { node: Node; len: number }[] = [];
+    const containerRect = container.getBoundingClientRect();
+    const containerAbsoluteTop = window.scrollY + containerRect.top;
     
-    let currentNode = walker.nextNode();
-    while (currentNode) {
-      const len = currentNode.textContent?.length || 0; // Use exact length to map offsets
-      if (len > 0) {
-        textNodes.push({ node: currentNode, len });
-        totalChars += len;
+    let silentTotalHeight = 0;
+    const silentData = silentElements.map(el => {
+      const rect = el.getBoundingClientRect();
+      const h = rect.height;
+      silentTotalHeight += h;
+      return { 
+        height: h, 
+        absoluteTop: window.scrollY + rect.top 
+      };
+    }).sort((a, b) => a.absoluteTop - b.absoluteTop);
+    
+    const totalTextHeight = containerRect.height - silentTotalHeight;
+    const targetTextY = progressPercentage * totalTextHeight;
+    
+    let absoluteY = containerAbsoluteTop + targetTextY;
+    
+    // Push the absoluteY down to skip over any silent elements
+    for (const el of silentData) {
+      if (el.absoluteTop <= absoluteY) {
+        absoluteY += el.height;
       }
-      currentNode = walker.nextNode();
     }
     
-    if (totalChars === 0) return;
+    const screenCenterY = window.scrollY + window.innerHeight / 2;
+    const targetScrollY = absoluteY - window.innerHeight / 2;
     
-    const targetChar = progressPercentage * totalChars;
-    let charCount = 0;
-    let targetNode: Node | null = null;
-    let offsetInNode = 0;
-    
-    for (const { node, len } of textNodes) {
-      if (charCount + len >= targetChar) {
-        targetNode = node;
-        offsetInNode = Math.floor(targetChar - charCount);
-        break;
-      }
-      charCount += len;
-    }
-    
-    if (targetNode) {
-      try {
-        const range = document.createRange();
-        const safeOffset = Math.min(Math.max(0, offsetInNode), targetNode.textContent!.length - 1);
-        range.setStart(targetNode, safeOffset);
-        range.setEnd(targetNode, safeOffset + 1);
-        const rect = range.getBoundingClientRect();
-        
-        // rect.top is relative to the viewport
-        const absoluteY = window.scrollY + rect.top;
-        const screenCenterY = window.scrollY + window.innerHeight / 2;
-        
-        // If the spoken word drifts more than 100px from the center of the screen, smooth scroll to re-center it!
-        const targetScrollY = absoluteY - window.innerHeight / 2;
-        
-        if (Math.abs(absoluteY - screenCenterY) > 100) {
-          if (lastRequestedScrollY.current === null || Math.abs(lastRequestedScrollY.current - targetScrollY) > 50) {
-            lastRequestedScrollY.current = targetScrollY;
-            window.scrollTo({
-              top: targetScrollY,
-              behavior: 'smooth'
-            });
-          }
-        }
-      } catch (e) {
-        // Silently ignore range errors during DOM mutations
+    // If the target drifts more than 100px from center, smooth scroll
+    if (Math.abs(absoluteY - screenCenterY) > 100) {
+      if (lastRequestedScrollY.current === null || Math.abs(lastRequestedScrollY.current - targetScrollY) > 50) {
+        lastRequestedScrollY.current = targetScrollY;
+        window.scrollTo({
+          top: targetScrollY,
+          behavior: 'smooth'
+        });
       }
     }
   }, [currentTime, duration, isThisTrackActive, isPlaying, autoScroll]);
