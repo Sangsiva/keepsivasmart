@@ -45,14 +45,21 @@ export default function AudioPlayer({ moduleId, title, markdownContent, initialP
         {isThisTrackActive && isLoading ? '⏳ Loading...' : (isThisTrackActive && isPlaying) ? '⏸ Pause' : '▶️ Listen from Start'}
       </button>
       
-      {!isThisTrackActive && activeProgress > 0 && (
-        <button 
-          onClick={handleResumeClick}
-          style={{ padding: '0.25rem 0.75rem', background: 'var(--secondary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-        >
-          📖 Resume from {formatTime(activeProgress)}
-        </button>
-      )}
+      <button 
+        onClick={handleResumeClick}
+        disabled={activeProgress === 0}
+        style={{ 
+          padding: '0.25rem 0.75rem', 
+          background: activeProgress > 0 ? 'var(--secondary)' : '#e0e0e0', 
+          color: activeProgress > 0 ? 'white' : '#9e9e9e', 
+          border: 'none', 
+          borderRadius: '4px', 
+          cursor: activeProgress > 0 ? 'pointer' : 'not-allowed',
+          opacity: activeProgress > 0 ? 1 : 0.7
+        }}
+      >
+        📖 Resume from {activeProgress > 0 ? formatTime(activeProgress) : 'last left'}
+      </button>
       
       <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginLeft: 'auto' }}>
         {isThisTrackActive && isPlaying ? 'Playing globally...' : 'Commute Mode'}
