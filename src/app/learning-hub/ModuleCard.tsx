@@ -30,11 +30,15 @@ export default function ModuleCard({ mod }: { mod: any }) {
 
   const [autoScroll, setAutoScroll] = useState(true);
   const lastScrolledNode = useRef<Node | null>(null);
+  const lastRequestedScrollY = useRef<number | null>(null);
 
   // Disable auto-scroll if the user manually scrolls
   useEffect(() => {
     const handleUserInteraction = () => {
-      if (autoScroll) setAutoScroll(false);
+      if (autoScroll) {
+        setAutoScroll(false);
+        lastRequestedScrollY.current = null;
+      }
     };
     
     // Listen to wheel and touchmove to detect manual scrolling
@@ -51,10 +55,11 @@ export default function ModuleCard({ mod }: { mod: any }) {
   useEffect(() => {
     if (isPlaying && isThisTrackActive) {
       setAutoScroll(true);
+      lastRequestedScrollY.current = null;
     }
   }, [isPlaying, isThisTrackActive]);
 
-  // Perform paragraph-level auto-scrolling
+  // Perform precise character-level auto-scrolling
   useEffect(() => {
     if (!isThisTrackActive || !isPlaying || !autoScroll || !markdownContainerRef.current) return;
     if (!duration || duration <= 0) return;
@@ -110,11 +115,16 @@ export default function ModuleCard({ mod }: { mod: any }) {
         const screenCenterY = window.scrollY + window.innerHeight / 2;
         
         // If the spoken word drifts more than 100px from the center of the screen, smooth scroll to re-center it!
+        const targetScrollY = absoluteY - window.innerHeight / 2;
+        
         if (Math.abs(absoluteY - screenCenterY) > 100) {
-          window.scrollTo({
-            top: absoluteY - window.innerHeight / 2,
-            behavior: 'smooth'
-          });
+          if (lastRequestedScrollY.current === null || Math.abs(lastRequestedScrollY.current - targetScrollY) > 50) {
+            lastRequestedScrollY.current = targetScrollY;
+            window.scrollTo({
+              top: targetScrollY,
+              behavior: 'smooth'
+            });
+          }
         }
       } catch (e) {
         // Silently ignore range errors during DOM mutations

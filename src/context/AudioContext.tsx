@@ -271,6 +271,10 @@ export function AudioProvider({ children, hasPremiumTTS = null }: { children: Re
     setIsPlaying(true);
     fallbackLastTickRef.current = Date.now();
     
+    // Fix: Explicitly initialize the clock to the initial progress!
+    setCurrentTime(initialProgress);
+    currentTimeRef.current = initialProgress;
+    
     // Execute loop completely asynchronously but preserving object lifecycles
     runFallbackPlayback(chunks, chunkIndex, estDuration);
   };
@@ -338,6 +342,10 @@ export function AudioProvider({ children, hasPremiumTTS = null }: { children: Re
         }
       }
       currentChunkIndexRef.current = chunkIndex;
+      
+      // Fix: Update internal clock to the newly seeked time!
+      setCurrentTime(time);
+      currentTimeRef.current = time;
       
       // Start a fresh playback loop
       runFallbackPlayback(fallbackChunksRef.current, chunkIndex, durationRef.current);
