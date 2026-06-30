@@ -1,11 +1,29 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+
+const LOADING_MESSAGES = [
+  '🧠 Analyzing your profile and knowledge gaps...',
+  '📚 Curating a custom curriculum...',
+  '🎧 Synthesizing audio and finalizing module...'
+];
 
 export default function GenerateButton() {
   const [loading, setLoading] = useState(false);
+  const [loadingStep, setLoadingStep] = useState(0);
   const router = useRouter();
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (loading) {
+      setLoadingStep(0);
+      interval = setInterval(() => {
+        setLoadingStep((prev) => Math.min(prev + 1, LOADING_MESSAGES.length - 1));
+      }, 8000); // Change message every 8 seconds
+    }
+    return () => clearInterval(interval);
+  }, [loading]);
 
   const handleGenerate = async () => {
     setLoading(true);
@@ -60,8 +78,26 @@ export default function GenerateButton() {
       <p style={{ color: 'var(--text-secondary)' }}>
         Ready for your daily learning session? Let the agent curate your curriculum.
       </p>
-      <button className="btn-primary" onClick={handleGenerate} disabled={loading}>
-        {loading ? 'Curating 15-Minute Deep Dive... (Takes ~30s)' : '✨ Generate Today\'s Module'}
+      <button 
+        className="btn-primary" 
+        onClick={handleGenerate} 
+        disabled={loading}
+        style={{
+          minWidth: '280px',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: '8px',
+          opacity: loading ? 0.8 : 1,
+          cursor: loading ? 'wait' : 'pointer'
+        }}
+      >
+        {loading ? (
+          <>
+            <div className="spinner" style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+            {LOADING_MESSAGES[loadingStep]}
+          </>
+        ) : '✨ Generate Today\'s Module'}
       </button>
     </div>
   );

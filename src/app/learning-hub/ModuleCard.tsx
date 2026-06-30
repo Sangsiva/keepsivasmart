@@ -6,6 +6,19 @@ import AudioPlayer from '@/components/AudioPlayer';
 import QuizModal from '@/components/QuizModal';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
 
+const getRelativeTime = (dateString: string) => {
+  if (!dateString) return '';
+  const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+  const date = new Date(dateString);
+  const diffInMinutes = Math.round((date.getTime() - Date.now()) / (1000 * 60));
+  const diffInHours = Math.round((date.getTime() - Date.now()) / (1000 * 60 * 60));
+  const diffInDays = Math.round((date.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+
+  if (Math.abs(diffInMinutes) < 60) return rtf.format(diffInMinutes, 'minute');
+  if (Math.abs(diffInHours) < 24) return rtf.format(diffInHours, 'hour');
+  return rtf.format(diffInDays, 'day');
+};
+
 export default function ModuleCard({ mod }: { mod: any }) {
   const [feedback, setFeedback] = useState<string | null>(mod.feedback || null);
   const [showQuiz, setShowQuiz] = useState(false);
@@ -58,6 +71,7 @@ export default function ModuleCard({ mod }: { mod: any }) {
           {mod.title} <br/>
           <span style={{ fontSize: '0.9rem', color: '#888', fontWeight: 'normal' }}>
             ({mod.type === 'primary' ? '1 Hour Deep Dive' : '15 Min Quick Session'})
+            {mod.createdAt && ` • Generated ${new Date(mod.createdAt).toLocaleDateString()} (${getRelativeTime(mod.createdAt)})`}
           </span>
         </h2>
         <div style={{ display: 'flex', gap: '1rem' }}>

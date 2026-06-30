@@ -198,3 +198,8 @@ body {
   border-radius: 12px;
   border: 1px solid #e4e4e7;
 }
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
