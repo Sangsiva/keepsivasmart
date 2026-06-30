@@ -26,13 +26,17 @@ const MermaidChart = ({ chart }: { chart: string }) => {
 
   useEffect(() => {
     const renderChart = async () => {
+      const id = `mermaid-chart-${Math.random().toString(36).substring(2, 9)}`;
       try {
-        const id = `mermaid-chart-${Math.random().toString(36).substring(2, 9)}`;
         const { svg: renderedSvg } = await mermaid.render(id, chart);
         setSvg(renderedSvg);
       } catch (error) {
         console.error("Failed to render mermaid chart", error);
-        setSvg('<div style="color: red; padding: 1rem; border: 1px solid red;">Failed to render diagram. Syntax error in Mermaid code.</div>');
+        const errorSvg = document.getElementById('d' + id);
+        if (errorSvg) {
+          errorSvg.remove();
+        }
+        setSvg('<div style="color: red; padding: 1rem; border: 1px solid red; border-radius: 8px;">Failed to render diagram. Syntax error in Mermaid code.</div>');
       }
     };
     if (chart) renderChart();
