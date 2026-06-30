@@ -18,8 +18,18 @@ export default function AudioPlayer({ moduleId, title, markdownContent, initialP
     if (isThisTrackActive) {
       togglePlayPause();
     } else {
-      playTrack(moduleId, title, markdownContent, initialProgress);
+      playTrack(moduleId, title, markdownContent, 0); // Always start from beginning if "Listen" is clicked
     }
+  };
+
+  const handleResumeClick = () => {
+    playTrack(moduleId, title, markdownContent, initialProgress);
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -29,8 +39,17 @@ export default function AudioPlayer({ moduleId, title, markdownContent, initialP
         disabled={isThisTrackActive && isLoading}
         style={{ padding: '0.25rem 0.75rem', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '4px', cursor: (isThisTrackActive && isLoading) ? 'wait' : 'pointer', opacity: (isThisTrackActive && isLoading) ? 0.7 : 1 }}
       >
-        {isThisTrackActive && isLoading ? '⏳ Loading...' : (isThisTrackActive && isPlaying) ? '⏸ Pause' : '▶️ Listen'}
+        {isThisTrackActive && isLoading ? '⏳ Loading...' : (isThisTrackActive && isPlaying) ? '⏸ Pause' : '▶️ Listen from Start'}
       </button>
+      
+      {!isThisTrackActive && initialProgress > 0 && (
+        <button 
+          onClick={handleResumeClick}
+          style={{ padding: '0.25rem 0.75rem', background: 'var(--secondary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+        >
+          📖 Resume from {formatTime(initialProgress)}
+        </button>
+      )}
       
       <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginLeft: 'auto' }}>
         {isThisTrackActive && isPlaying ? 'Playing globally...' : 'Commute Mode'}

@@ -7,10 +7,13 @@ interface AudioContextType {
   isLoading: boolean;
   currentTrackTitle: string | null;
   rate: number;
+  currentTime: number;
+  duration: number;
   playTrack: (moduleId: string, title: string, markdownContent: string, initialProgress?: number) => Promise<void>;
   togglePlayPause: () => void;
   stopTrack: () => void;
   changeRate: () => void;
+  seekTo: (time: number) => void;
 }
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
@@ -21,6 +24,8 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const [currentModuleId, setCurrentModuleId] = useState<string | null>(null);
   const [currentTrackTitle, setCurrentTrackTitle] = useState<string | null>(null);
   const [rate, setRate] = useState(1);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const lastSavedProgressRef = useRef<number>(0);
 
@@ -73,7 +78,10 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       
       audio.playbackRate = rate;
       audio.currentTime = initialProgress;
+      setCurrentTime(initialProgress);
       audio.onended = () => setIsPlaying(false);
+      audio.ontimeupdate = () => setCurrentTime(audio.currentTime);
+      audio.onloadedmetadata = () => setDuration(audio.duration);
       audio.play();
       
       audioRef.current = audio;
@@ -125,7 +133,16 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     setIsPlaying(false);
     setCurrentModuleId(null);
     setCurrentTrackTitle(null);
+    setCurrentTime(0);
+    setDuration(0);
     lastSavedProgressRef.current = 0;
+  };
+
+  const seekTo = (time: number) => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = time;
+      setCurrentTime(time);
+    }
   };
 
   const changeRate = () => {
@@ -169,10 +186,13 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       isLoading,
       currentTrackTitle,
       rate,
+      currentTime,
+      duration,
       playTrack,
       togglePlayPause,
       stopTrack,
-      changeRate
+      changeRate,
+      seekTo
     }}>
       {children}
     </AudioContext.Provider>

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { useAudio } from '@/context/AudioContext';
 import AudioPlayer from '@/components/AudioPlayer';
 import QuizModal from '@/components/QuizModal';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
@@ -9,6 +10,24 @@ export default function ModuleCard({ mod }: { mod: any }) {
   const [feedback, setFeedback] = useState<string | null>(mod.feedback || null);
   const [showQuiz, setShowQuiz] = useState(false);
   const [isCompleted, setIsCompleted] = useState(mod.status === 'completed');
+  
+  const { currentTrackTitle, isPlaying, currentTime, duration } = useAudio();
+  const markdownContainerRef = useRef<HTMLDivElement>(null);
+  const isThisTrackActive = currentTrackTitle === mod.title;
+
+  useEffect(() => {
+    if (isThisTrackActive && isPlaying && duration > 0 && markdownContainerRef.current) {
+      const container = markdownContainerRef.current;
+      const progress = currentTime / duration;
+      const targetScroll = container.offsetTop + (progress * container.scrollHeight) - (window.innerHeight / 2);
+      
+      // Auto-scroll the window to keep the text centered
+      window.scrollTo({
+        top: targetScroll,
+        behavior: 'auto'
+      });
+    }
+  }, [currentTime, duration, isThisTrackActive, isPlaying]);
 
   const handleMarkComplete = async () => {
     setIsCompleted(true);
@@ -65,7 +84,9 @@ export default function ModuleCard({ mod }: { mod: any }) {
       
       <AudioPlayer moduleId={mod.id} title={mod.title} markdownContent={mod.content} initialProgress={mod.progressSeconds} />
       
-      <MarkdownRenderer content={mod.content} />
+      <div ref={markdownContainerRef}>
+        <MarkdownRenderer content={mod.content} />
+      </div>
       
       <div style={{ marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid #eaeaea', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
