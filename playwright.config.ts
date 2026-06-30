@@ -21,6 +21,14 @@ export default defineConfig({
       },
       dependencies: ['setup'],
     },
+    {
+      name: 'Mobile Chrome',
+      use: {
+        ...devices['Pixel 5'],
+        storageState: 'playwright/.auth/user.json',
+      },
+      dependencies: ['setup'],
+    },
   ],
   webServer: {
     command: 'npm run dev -- -p 3001',
