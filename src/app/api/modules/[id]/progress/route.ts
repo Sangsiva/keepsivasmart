@@ -27,17 +27,25 @@ export async function PATCH(
       return NextResponse.json({ error: 'User profile not found' }, { status: 404 });
     }
 
-    const updatedModule = await prisma.learningModule.update({
+    const existingModule = await prisma.learningModule.findFirst({
       where: { 
         id: params.id,
         userProfileId: userProfile.id 
-      },
+      }
+    });
+
+    if (!existingModule) {
+      return NextResponse.json({ error: 'Module not found or unauthorized' }, { status: 404 });
+    }
+
+    await prisma.learningModule.update({
+      where: { id: params.id },
       data: {
         progressSeconds: Math.floor(progressSeconds)
       }
     });
 
-    return NextResponse.json({ success: true, progressSeconds: updatedModule.progressSeconds });
+    return NextResponse.json({ success: true, progressSeconds: Math.floor(progressSeconds) });
   } catch (error: any) {
     console.error('Error updating module progress:', error);
     return NextResponse.json({ error: 'Failed to update progress' }, { status: 500 });
