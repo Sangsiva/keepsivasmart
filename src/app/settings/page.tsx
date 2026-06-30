@@ -149,11 +149,11 @@ export default function SettingsPage() {
           style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', background: 'white' }}
         >
           <option value="alloy">Alloy (Neutral, versatile)</option>
-          <option value="echo">Echo (Warm, round)</option>
-          <option value="fable">Fable (Expressive, British-ish)</option>
-          <option value="onyx">Onyx (Deep, authoritative)</option>
-          <option value="nova">Nova (Energetic, female)</option>
-          <option value="shimmer">Shimmer (Clear, female)</option>
+          <option value="echo">Echo (Male, warm, round)</option>
+          <option value="fable">Fable (Male, expressive, British-ish)</option>
+          <option value="onyx">Onyx (Male, deep, authoritative)</option>
+          <option value="nova">Nova (Female, energetic)</option>
+          <option value="shimmer">Shimmer (Female, clear)</option>
         </select>
       </div>
 
