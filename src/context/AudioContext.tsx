@@ -188,7 +188,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     utterance.onerror = (e) => {
       // ignore cancel errors which happen on manual stop
       if (e.error !== 'canceled') {
-        console.error('SpeechSynthesis error:', e);
+        console.warn('SpeechSynthesis error:', e);
         setIsPlaying(false);
       }
     };
