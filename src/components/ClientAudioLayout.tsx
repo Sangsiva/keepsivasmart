@@ -51,9 +51,9 @@ function MiniPlayer() {
   );
 }
 
-export default function ClientAudioLayout({ children }: { children: React.ReactNode }) {
+export default function ClientAudioLayout({ children, hasPremiumTTS }: { children: React.ReactNode, hasPremiumTTS?: boolean }) {
   return (
-    <AudioProvider>
+    <AudioProvider hasPremiumTTS={hasPremiumTTS}>
       {children}
       <MiniPlayer />
     </AudioProvider>

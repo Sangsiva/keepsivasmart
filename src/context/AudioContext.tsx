@@ -18,7 +18,7 @@ interface AudioContextType {
 
 const AudioContext = createContext<AudioContextType | undefined>(undefined);
 
-export function AudioProvider({ children }: { children: React.ReactNode }) {
+export function AudioProvider({ children, hasPremiumTTS = null }: { children: React.ReactNode, hasPremiumTTS?: boolean | null }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [currentModuleId, setCurrentModuleId] = useState<string | null>(null);
@@ -26,7 +26,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const [rate, setRate] = useState(1);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [hasPremiumTTS, setHasPremiumTTS] = useState<boolean | null>(null);
+  const [isTTSConfigured, setIsTTSConfigured] = useState<boolean | null>(hasPremiumTTS);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const lastSavedProgressRef = useRef<number>(0);
@@ -42,12 +42,14 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const fallbackPlaybackIdRef = useRef<number>(0);
 
   useEffect(() => {
-    // Check if server has OpenAI key configured so we can bypass async fetches for fallback
-    fetch('/api/tts/status')
-      .then(res => res.json())
-      .then(data => setHasPremiumTTS(data.enabled))
-      .catch(() => setHasPremiumTTS(false));
-  }, []);
+    // If the server didn't pass it, check via API
+    if (isTTSConfigured === null) {
+      fetch('/api/tts/status')
+        .then(res => res.json())
+        .then(data => setIsTTSConfigured(data.enabled))
+        .catch(() => setIsTTSConfigured(false));
+    }
+  }, [isTTSConfigured]);
 
   // Clean up markdown before sending to TTS
   const cleanMarkdownForAudio = (md: string) => {
@@ -83,7 +85,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     // By entirely skipping the async fetch when there is no API key,
     // we preserve the exact synchronous execution context of the React onClick event,
     // perfectly bypassing macOS Safari/Chrome anti-spam WebAudio blocks!
-    if (hasPremiumTTS === false) {
+    if (isTTSConfigured === false) {
       console.log('No OpenAI key configured, routing synchronously to Web Speech API');
       playFallback(markdownContent, initialProgress);
       return;

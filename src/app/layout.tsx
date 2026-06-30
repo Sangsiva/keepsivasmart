@@ -52,7 +52,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </div>
         </nav>
         <main style={{ padding: '2rem', maxWidth: '1000px', margin: '0 auto' }}>
-          <ClientAudioLayout>
+          <ClientAudioLayout hasPremiumTTS={!!process.env.OPENAI_API_KEY}>
             {children}
           </ClientAudioLayout>
         </main>
