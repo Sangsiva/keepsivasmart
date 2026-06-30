@@ -135,7 +135,7 @@ export default function ModuleCard({ mod }: { mod: any }) {
 
   return (
     <div style={{ border: '1px solid #eaeaea', background: 'white', padding: '2rem', marginBottom: '2rem', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
         <h2 style={{ marginTop: 0 }}>
           {mod.title} <br/>
           <span style={{ fontSize: '0.9rem', color: '#888', fontWeight: 'normal' }}>

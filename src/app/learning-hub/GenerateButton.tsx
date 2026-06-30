@@ -74,7 +74,7 @@ export default function GenerateButton() {
   };
 
   return (
-    <div style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div style={{ marginBottom: '2rem', display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'space-between', alignItems: 'center' }}>
       <p style={{ color: 'var(--text-secondary)' }}>
         Ready for your daily learning session? Let the agent curate your curriculum.
       </p>

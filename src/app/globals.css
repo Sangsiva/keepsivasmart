@@ -76,6 +76,28 @@ body {
   color: var(--primary);
 }
 
+@media (max-width: 768px) {
+  .nav {
+    flex-wrap: wrap;
+    padding: 10px;
+    gap: 10px;
+    position: relative; /* Remove sticky on mobile to save screen space */
+    justify-content: space-between;
+  }
+  
+  .nav a {
+    font-size: 0.9rem;
+  }
+  
+  main {
+    padding: 1rem !important;
+  }
+  
+  .glass-card {
+    padding: 1rem !important;
+  }
+}
+
 .input-field {
   width: 100%;
   padding: 0.75rem;

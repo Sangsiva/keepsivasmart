@@ -8,7 +8,6 @@ export const metadata = {
   title: 'KeepSivaSmart',
   description: 'AI Learning Agent',
   manifest: '/manifest.json', // for next-pwa
-  themeColor: '#ffffff',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
@@ -19,13 +18,20 @@ export const metadata = {
   },
 };
 
+export const viewport = {
+  themeColor: '#ffffff',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+};
+
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
   
   return (
     <html lang="en">
       <body>
-        <nav className="nav" style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+        <nav className="nav">
           <Link href="/dashboard">Dashboard</Link>
           <Link href="/learning-hub">Learning Hub</Link>
           <Link href="/settings">Settings</Link>
