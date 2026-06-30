@@ -70,6 +70,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     // Use a space ' ' instead of empty string '' which crashes some browsers.
     const unlockUtterance = new SpeechSynthesisUtterance(' ');
     unlockUtterance.volume = 0;
+    unlockUtterance.lang = 'en-US';
     // Only speak if not already cancelled in the same tick
     window.speechSynthesis.speak(unlockUtterance);
     
@@ -177,6 +178,14 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     
     const utterance = new SpeechSynthesisUtterance(chunks[index]);
     utterance.rate = rateRef.current;
+    utterance.lang = 'en-US';
+    
+    // Attempt to explicitly set a voice if available, which fixes bugs on some platforms
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+      const englishVoice = voices.find(v => v.lang.startsWith('en'));
+      if (englishVoice) utterance.voice = englishVoice;
+    }
     
     utterance.onboundary = (e) => {
       let charsBefore = 0;
