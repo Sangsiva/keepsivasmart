@@ -39,6 +39,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const fallbackChunksRef = useRef<string[]>([]);
   const currentChunkIndexRef = useRef<number>(0);
   const fallbackUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const fallbackPlaybackIdRef = useRef<number>(0);
 
   useEffect(() => {
     // Check if server has OpenAI key configured so we can bypass async fetches for fallback
@@ -134,21 +135,96 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const makeChunksOfText = (text: string, maxLength = 180) => {
+    const speechChunks = [];
+    let currentText = text;
+    while (currentText.length > 0) {
+      if (currentText.length <= maxLength) {
+        speechChunks.push(currentText);
+        break;
+      }
+      let chunk = currentText.substring(0, maxLength + 1);
+      let lastSpaceIndex = chunk.lastIndexOf(' ');
+      
+      if (lastSpaceIndex !== -1) {
+        speechChunks.push(currentText.substring(0, lastSpaceIndex).trim());
+        currentText = currentText.substring(lastSpaceIndex + 1).trim();
+      } else {
+        speechChunks.push(currentText.substring(0, maxLength).trim());
+        currentText = currentText.substring(maxLength).trim();
+      }
+    }
+    return speechChunks.filter(Boolean);
+  };
+
+  const runFallbackPlayback = async (chunks: string[], startIndex: number, estDuration: number) => {
+    fallbackPlaybackIdRef.current++;
+    const currentPlaybackId = fallbackPlaybackIdRef.current;
+    
+    let totalCharsBefore = chunks.slice(0, startIndex).join('').length;
+    const totalChars = chunks.join('').length;
+
+    for (let index = startIndex; index < chunks.length; index++) {
+      if (!isFallbackRef.current || fallbackPlaybackIdRef.current !== currentPlaybackId) break;
+      
+      currentChunkIndexRef.current = index;
+      const chunk = chunks[index];
+      
+      await new Promise<void>((resolve) => {
+        const utterance = new SpeechSynthesisUtterance(chunk);
+        utterance.rate = rateRef.current;
+        utterance.lang = 'en-US';
+        
+        const voices = window.speechSynthesis.getVoices();
+        if (voices.length > 0) {
+          const englishVoice = voices.find(v => v.lang.startsWith('en'));
+          if (englishVoice) utterance.voice = englishVoice;
+        }
+
+        utterance.onboundary = (e) => {
+          if (!isFallbackRef.current || fallbackPlaybackIdRef.current !== currentPlaybackId) return;
+          const currentFraction = (totalCharsBefore + e.charIndex) / totalChars;
+          const newTime = currentFraction * estDuration;
+          setCurrentTime(newTime);
+          currentTimeRef.current = newTime;
+        };
+
+        utterance.onend = () => {
+          totalCharsBefore += chunk.length;
+          resolve();
+        };
+
+        utterance.onerror = (e) => {
+          if (e.error !== 'canceled') {
+            console.warn('SpeechSynthesis error:', e);
+          }
+          totalCharsBefore += chunk.length;
+          resolve();
+        };
+
+        fallbackUtteranceRef.current = utterance;
+        window.speechSynthesis.speak(utterance);
+      });
+    }
+    
+    if (isFallbackRef.current && fallbackPlaybackIdRef.current === currentPlaybackId) {
+      setIsPlaying(false);
+      isFallbackRef.current = false;
+    }
+  };
+
   const playFallback = (content: string, initialProgress: number = 0) => {
     isFallbackRef.current = true;
     
     const text = cleanMarkdownForAudio(content);
-    // Split by sentence markers to prevent silent failures on long text, ensuring we don't drop text without punctuation
-    const chunks = text.match(/[^.!?]+[.!?]*|.+/g)?.map(s => s.trim()).filter(Boolean) || [text];
+    const chunks = makeChunksOfText(text);
     fallbackChunksRef.current = chunks;
     
-    // Estimate duration: ~150 WPM
     const words = text.split(/\s+/).length;
     const estDuration = (words / 150) * 60;
     setDuration(estDuration);
     durationRef.current = estDuration;
     
-    // Find where to resume based on initialProgress
     let startFraction = estDuration > 0 ? initialProgress / estDuration : 0;
     if (startFraction > 1) startFraction = 1;
     
@@ -166,63 +242,10 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     
     currentChunkIndexRef.current = chunkIndex;
     setIsLoading(false);
-    
-    // Execute synchronously to preserve user-gesture
-    playNextChunk();
-  };
-
-  const playNextChunk = () => {
-    const chunks = fallbackChunksRef.current;
-    const index = currentChunkIndexRef.current;
-    
-    if (index >= chunks.length) {
-      setIsPlaying(false);
-      return;
-    }
-    
-    const utterance = new SpeechSynthesisUtterance(chunks[index]);
-    utterance.rate = rateRef.current;
-    utterance.lang = 'en-US';
-    
-    // Attempt to explicitly set a voice if available, which fixes bugs on some platforms
-    const voices = window.speechSynthesis.getVoices();
-    if (voices.length > 0) {
-      const englishVoice = voices.find(v => v.lang.startsWith('en'));
-      if (englishVoice) utterance.voice = englishVoice;
-    }
-    
-    utterance.onboundary = (e) => {
-      let charsBefore = 0;
-      for (let i = 0; i < index; i++) {
-        charsBefore += chunks[i].length;
-      }
-      const absoluteCharIndex = charsBefore + e.charIndex;
-      const totalChars = chunks.join('').length;
-      const currentFraction = absoluteCharIndex / totalChars;
-      
-      const newTime = currentFraction * durationRef.current;
-      setCurrentTime(newTime);
-      currentTimeRef.current = newTime;
-    };
-    
-    utterance.onend = () => {
-      // Don't advance if we stopped it manually
-      if (!isPlaying && !isFallbackRef.current) return; 
-      currentChunkIndexRef.current++;
-      playNextChunk();
-    };
-    
-    utterance.onerror = (e) => {
-      // ignore cancel errors which happen on manual stop
-      if (e.error !== 'canceled') {
-        console.warn('SpeechSynthesis error:', e);
-        setIsPlaying(false);
-      }
-    };
-
-    fallbackUtteranceRef.current = utterance;
-    window.speechSynthesis.speak(utterance);
     setIsPlaying(true);
+    
+    // Execute loop completely asynchronously but preserving object lifecycles
+    runFallbackPlayback(chunks, chunkIndex, estDuration);
   };
 
   const togglePlayPause = () => {
@@ -256,6 +279,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       audioRef.current = null;
     }
     isFallbackRef.current = false;
+    fallbackPlaybackIdRef.current++; // Kill active loop
     setIsPlaying(false);
     setCurrentModuleId(null);
     setCurrentTrackTitle(null);
@@ -269,7 +293,9 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const seekTo = (time: number) => {
     if (isFallbackRef.current) {
       // Fully restart playback at new chunk
+      fallbackPlaybackIdRef.current++; // Kill active loop
       window.speechSynthesis.cancel();
+      
       const fraction = time / durationRef.current;
       const text = fallbackChunksRef.current.join('');
       const startCharIndex = Math.floor(fraction * text.length);
@@ -284,7 +310,9 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
         }
       }
       currentChunkIndexRef.current = chunkIndex;
-      playNextChunk();
+      
+      // Start a fresh playback loop
+      runFallbackPlayback(fallbackChunksRef.current, chunkIndex, durationRef.current);
     } else if (audioRef.current) {
       audioRef.current.currentTime = time;
       setCurrentTime(time);
