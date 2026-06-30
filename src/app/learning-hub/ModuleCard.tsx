@@ -28,7 +28,81 @@ export default function ModuleCard({ mod }: { mod: any }) {
   const markdownContainerRef = useRef<HTMLDivElement>(null);
   const isThisTrackActive = currentTrackTitle === mod.title;
 
-  // Removed flawed proportional auto-scroll that caused diagrams to violently scroll off-screen and fight user interaction.
+  const [autoScroll, setAutoScroll] = useState(true);
+  const lastScrolledNode = useRef<Node | null>(null);
+
+  // Disable auto-scroll if the user manually scrolls
+  useEffect(() => {
+    const handleUserInteraction = () => {
+      if (autoScroll) setAutoScroll(false);
+    };
+    
+    // Listen to wheel and touchmove to detect manual scrolling
+    window.addEventListener('wheel', handleUserInteraction, { passive: true });
+    window.addEventListener('touchmove', handleUserInteraction, { passive: true });
+    
+    return () => {
+      window.removeEventListener('wheel', handleUserInteraction);
+      window.removeEventListener('touchmove', handleUserInteraction);
+    };
+  }, [autoScroll]);
+
+  // Re-enable auto-scroll when audio starts playing again
+  useEffect(() => {
+    if (isPlaying && isThisTrackActive) {
+      setAutoScroll(true);
+    }
+  }, [isPlaying, isThisTrackActive]);
+
+  // Perform paragraph-level auto-scrolling
+  useEffect(() => {
+    if (!isThisTrackActive || !isPlaying || !autoScroll || !markdownContainerRef.current) return;
+    if (!duration || duration <= 0) return;
+
+    const progressPercentage = currentTime / duration;
+    
+    // Walk all text nodes to find the one corresponding to the audio progress
+    const walker = document.createTreeWalker(
+      markdownContainerRef.current,
+      NodeFilter.SHOW_TEXT,
+      null
+    );
+    
+    let totalChars = 0;
+    const textNodes: { node: Node; len: number }[] = [];
+    
+    let currentNode = walker.nextNode();
+    while (currentNode) {
+      const len = currentNode.textContent?.trim().length || 0;
+      if (len > 0) {
+        textNodes.push({ node: currentNode, len });
+        totalChars += len;
+      }
+      currentNode = walker.nextNode();
+    }
+    
+    if (totalChars === 0) return;
+    
+    const targetChar = progressPercentage * totalChars;
+    let charCount = 0;
+    let targetNode: Node | null = null;
+    
+    for (const { node, len } of textNodes) {
+      charCount += len;
+      if (charCount >= targetChar) {
+        targetNode = node;
+        break;
+      }
+    }
+    
+    if (targetNode && targetNode !== lastScrolledNode.current && targetNode.parentElement) {
+      lastScrolledNode.current = targetNode;
+      targetNode.parentElement.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
+    }
+  }, [currentTime, duration, isThisTrackActive, isPlaying, autoScroll]);
 
   const handleMarkComplete = async () => {
     setIsCompleted(true);
@@ -86,7 +160,31 @@ export default function ModuleCard({ mod }: { mod: any }) {
       
       <AudioPlayer moduleId={mod.id} title={mod.title} markdownContent={mod.content} initialProgress={mod.progressSeconds} />
       
-      <div ref={markdownContainerRef}>
+      <div ref={markdownContainerRef} style={{ position: 'relative' }}>
+        {!autoScroll && isThisTrackActive && (
+          <button 
+            onClick={() => setAutoScroll(true)}
+            style={{
+              position: 'sticky',
+              top: '20px',
+              float: 'right',
+              padding: '0.5rem 1rem',
+              background: 'var(--primary)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '20px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              zIndex: 10,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}
+          >
+            ↓ Sync to Audio
+          </button>
+        )}
         <MarkdownRenderer content={mod.content} />
       </div>
       
