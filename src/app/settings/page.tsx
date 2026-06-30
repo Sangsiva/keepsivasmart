@@ -7,11 +7,13 @@ type TopicWeight = { id: string; topic: string; weight: number };
 export default function SettingsPage() {
   const [projectContext, setProjectContext] = useState('');
   const [apiKey, setApiKey] = useState('');
+  const [ttsVoice, setTtsVoice] = useState('alloy');
   const [topics, setTopics] = useState<TopicWeight[]>([]);
 
   useEffect(() => {
     setProjectContext(localStorage.getItem('projectContext') || '');
     setApiKey(localStorage.getItem('geminiApiKey') || '');
+    setTtsVoice(localStorage.getItem('ttsVoice') || 'alloy');
     const savedTopics = localStorage.getItem('topicWeights');
     if (savedTopics) {
       try {
@@ -45,6 +47,7 @@ export default function SettingsPage() {
     }
     localStorage.setItem('projectContext', projectContext);
     localStorage.setItem('geminiApiKey', apiKey);
+    localStorage.setItem('ttsVoice', ttsVoice);
     localStorage.setItem('topicWeights', JSON.stringify(topics));
     
     // Sync to backend for Cron job access
@@ -129,6 +132,29 @@ export default function SettingsPage() {
           rows={4}
           style={{ width: '100%', padding: '0.5rem' }}
         />
+      </div>
+
+      <div style={{ marginBottom: '1rem' }}>
+        <label htmlFor="ttsVoice" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }}>
+          AI Voice (OpenAI TTS)
+        </label>
+        <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0 0 0.5rem 0' }}>
+          Select the voice for the generated audio modules (requires an API Key).
+        </p>
+        <select
+          id="ttsVoice"
+          value={ttsVoice}
+          onChange={(e) => setTtsVoice(e.target.value)}
+          className="input-field"
+          style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', background: 'white' }}
+        >
+          <option value="alloy">Alloy (Neutral, versatile)</option>
+          <option value="echo">Echo (Warm, round)</option>
+          <option value="fable">Fable (Expressive, British-ish)</option>
+          <option value="onyx">Onyx (Deep, authoritative)</option>
+          <option value="nova">Nova (Energetic, female)</option>
+          <option value="shimmer">Shimmer (Clear, female)</option>
+        </select>
       </div>
 
       <div style={{ marginBottom: '1rem' }}>

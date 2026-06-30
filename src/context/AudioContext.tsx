@@ -105,10 +105,12 @@ export function AudioProvider({ children, hasPremiumTTS = null }: { children: Re
 
     try {
       const cleanText = cleanMarkdownForAudio(markdownContent);
+      const preferredVoice = localStorage.getItem('ttsVoice') || 'alloy';
+      
       const res = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: cleanText })
+        body: JSON.stringify({ text: cleanText, voice: preferredVoice })
       });
 
       if (res.status === 404) {
