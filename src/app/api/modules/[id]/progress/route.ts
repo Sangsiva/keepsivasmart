@@ -4,9 +4,10 @@ import { auth } from '@/auth';
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -29,7 +30,7 @@ export async function PATCH(
 
     const existingModule = await prisma.learningModule.findFirst({
       where: { 
-        id: params.id,
+        id: id,
         userProfileId: userProfile.id 
       }
     });
@@ -39,7 +40,7 @@ export async function PATCH(
     }
 
     await prisma.learningModule.update({
-      where: { id: params.id },
+      where: { id: id },
       data: {
         progressSeconds: Math.floor(progressSeconds)
       }
@@ -48,6 +49,6 @@ export async function PATCH(
     return NextResponse.json({ success: true, progressSeconds: Math.floor(progressSeconds) });
   } catch (error: any) {
     console.error('Error updating module progress:', error);
-    return NextResponse.json({ error: 'Failed to update progress' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to update progress', details: error?.message || String(error) }, { status: 500 });
   }
 }

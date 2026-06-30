@@ -369,7 +369,7 @@ export function AudioProvider({ children, hasPremiumTTS = null }: { children: Re
           const deltaSeconds = (now - fallbackLastTickRef.current) / 1000;
           fallbackLastTickRef.current = now;
           
-          if (deltaSeconds > 0 && deltaSeconds < 2) { // prevent huge jumps
+          if (deltaSeconds > 0) { // removed < 2 restriction because background tab throttling breaks it!
             const newTime = currentTimeRef.current + (deltaSeconds * rateRef.current);
             setCurrentTime(newTime);
             currentTimeRef.current = newTime;

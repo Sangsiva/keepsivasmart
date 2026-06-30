@@ -66,4 +66,57 @@ test.describe('Learning Hub Page', () => {
       expect(sentText).not.toContain('```mermaid');
     }
   });
+
+  test('should correctly track progress and allow resuming audio after refreshing', async ({ page }) => {
+    // Navigate to learning hub
+    await page.goto('/learning-hub');
+
+    // Assume there's a module
+    const listenButton = page.getByRole('button', { name: '▶️ Listen from Start' }).first();
+    if (await listenButton.count() === 0) {
+      test.skip();
+    }
+    
+    // Set mock localstorage so it uses the primary engine OR fallback
+    await page.evaluate(() => {
+      localStorage.setItem('ttsVoice', 'alloy');
+    });
+
+    // Mock TTS API to force fallback for testing internal clock
+    await page.route('**/api/tts', async (route) => {
+      await route.fulfill({ status: 404, body: '{}' }); 
+    });
+
+    // We do NOT mock the DB save here, we want to test the REAL api endpoint!
+    // But we still intercept to measure when it fires
+    let lastSavedProgress = 0;
+    await page.route('**/api/modules/*/progress', async (route) => {
+      if (route.request().method() === 'PATCH') {
+        const data = JSON.parse(route.request().postData() || '{}');
+        lastSavedProgress = data.progressSeconds;
+      }
+      route.fallback();
+    });
+
+    // Click listen
+    await listenButton.click();
+    
+    // Wait for the fallback clock to tick past 3 seconds (sync threshold)
+    // 6000ms ensures the 500ms interval fires enough times to surpass 3 seconds of simulated time
+    await page.waitForTimeout(6000);
+    
+    // Ensure DB sync fired with a number > 0
+    expect(lastSavedProgress).toBeGreaterThan(0);
+    
+    // Refresh the page
+    await page.reload();
+    
+    // Check if Resume button is statically visible and NOT disabled (since progress > 0)
+    const resumeBtn = page.getByRole('button', { name: /Resume from/i }).first();
+    await expect(resumeBtn).toBeVisible();
+    await expect(resumeBtn).toBeEnabled();
+    
+    const btnText = await resumeBtn.textContent();
+    expect(btnText).toContain('Resume from');
+  });
 });
