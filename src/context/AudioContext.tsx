@@ -354,7 +354,6 @@ export function AudioProvider({ children, hasPremiumTTS = null }: { children: Re
 
     return () => {
       clearInterval(interval);
-      stopTrack();
     };
   }, [isPlaying, currentModuleId]);
 
