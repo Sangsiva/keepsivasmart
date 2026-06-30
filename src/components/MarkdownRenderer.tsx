@@ -80,7 +80,7 @@ const markdownComponents = {
   }
 };
 
-export default function MarkdownRenderer({ content }: { content: string }) {
+export default React.memo(function MarkdownRenderer({ content }: { content: string }) {
   return (
     <div className="markdown-content">
       <ReactMarkdown
@@ -91,4 +91,4 @@ export default function MarkdownRenderer({ content }: { content: string }) {
       </ReactMarkdown>
     </div>
   );
-}
+});

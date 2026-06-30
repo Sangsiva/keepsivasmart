@@ -28,19 +28,7 @@ export default function ModuleCard({ mod }: { mod: any }) {
   const markdownContainerRef = useRef<HTMLDivElement>(null);
   const isThisTrackActive = currentTrackTitle === mod.title;
 
-  useEffect(() => {
-    if (isThisTrackActive && isPlaying && duration > 0 && markdownContainerRef.current) {
-      const container = markdownContainerRef.current;
-      const progress = currentTime / duration;
-      const targetScroll = container.offsetTop + (progress * container.scrollHeight) - (window.innerHeight / 2);
-      
-      // Auto-scroll the window to keep the text centered
-      window.scrollTo({
-        top: targetScroll,
-        behavior: 'auto'
-      });
-    }
-  }, [currentTime, duration, isThisTrackActive, isPlaying]);
+  // Removed flawed proportional auto-scroll that caused diagrams to violently scroll off-screen and fight user interaction.
 
   const handleMarkComplete = async () => {
     setIsCompleted(true);
