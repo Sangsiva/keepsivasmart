@@ -51,39 +51,41 @@ const MermaidChart = ({ chart }: { chart: string }) => {
   );
 };
 
+const markdownComponents = {
+  code(props: any) {
+    const { children, className, node, ...rest } = props;
+    const match = /language-(\w+)/.exec(className || '');
+    const language = match ? match[1] : '';
+    
+    if (language === 'mermaid') {
+      return <MermaidChart chart={String(children).replace(/\n$/, '')} />;
+    }
+    
+    return match ? (
+      <div className="code-block-wrapper">
+        <div className="code-header">
+          <span>{language}</span>
+        </div>
+        <pre className="code-body">
+          <code className={className} {...rest}>
+            {children}
+          </code>
+        </pre>
+      </div>
+    ) : (
+      <code className="inline-code" {...rest}>
+        {children}
+      </code>
+    );
+  }
+};
+
 export default function MarkdownRenderer({ content }: { content: string }) {
   return (
     <div className="markdown-content">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
-        components={{
-          code(props) {
-            const { children, className, node, ...rest } = props;
-            const match = /language-(\w+)/.exec(className || '');
-            const language = match ? match[1] : '';
-            
-            if (language === 'mermaid') {
-              return <MermaidChart chart={String(children).replace(/\n$/, '')} />;
-            }
-            
-            return match ? (
-              <div className="code-block-wrapper">
-                <div className="code-header">
-                  <span>{language}</span>
-                </div>
-                <pre className="code-body">
-                  <code className={className} {...rest}>
-                    {children}
-                  </code>
-                </pre>
-              </div>
-            ) : (
-              <code className="inline-code" {...rest}>
-                {children}
-              </code>
-            );
-          }
-        }}
+        components={markdownComponents}
       >
         {content}
       </ReactMarkdown>
