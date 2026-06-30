@@ -26,6 +26,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const [rate, setRate] = useState(1);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [hasPremiumTTS, setHasPremiumTTS] = useState<boolean | null>(null);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const lastSavedProgressRef = useRef<number>(0);
@@ -38,6 +39,14 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const fallbackChunksRef = useRef<string[]>([]);
   const currentChunkIndexRef = useRef<number>(0);
   const fallbackUtteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+
+  useEffect(() => {
+    // Check if server has OpenAI key configured so we can bypass async fetches for fallback
+    fetch('/api/tts/status')
+      .then(res => res.json())
+      .then(data => setHasPremiumTTS(data.enabled))
+      .catch(() => setHasPremiumTTS(false));
+  }, []);
 
   // Clean up markdown before sending to TTS
   const cleanMarkdownForAudio = (md: string) => {
@@ -65,19 +74,19 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     // Stop current track if any
     stopTrack();
     
-    // Synchronously unlock SpeechSynthesis engine before the async fetch!
-    // Browsers block TTS if it's not initiated by a direct user gesture.
-    // Use a space ' ' instead of empty string '' which crashes some browsers.
-    const unlockUtterance = new SpeechSynthesisUtterance(' ');
-    unlockUtterance.volume = 0;
-    unlockUtterance.lang = 'en-US';
-    // Only speak if not already cancelled in the same tick
-    window.speechSynthesis.speak(unlockUtterance);
-    
     setIsLoading(true);
     setCurrentModuleId(moduleId);
     setCurrentTrackTitle(title);
     lastSavedProgressRef.current = initialProgress;
+
+    // By entirely skipping the async fetch when there is no API key,
+    // we preserve the exact synchronous execution context of the React onClick event,
+    // perfectly bypassing macOS Safari/Chrome anti-spam WebAudio blocks!
+    if (hasPremiumTTS === false) {
+      console.log('No OpenAI key configured, routing synchronously to Web Speech API');
+      playFallback(markdownContent, initialProgress);
+      return;
+    }
 
     try {
       const res = await fetch('/api/tts', {
@@ -87,7 +96,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (res.status === 404) {
-        console.log('No OpenAI key found, falling back to Web Speech API');
+        console.log('No OpenAI key found, falling back to Web Speech API asynchronously');
         playFallback(markdownContent, initialProgress);
         return;
       }
@@ -128,9 +137,6 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const playFallback = (content: string, initialProgress: number = 0) => {
     isFallbackRef.current = true;
     
-    // Do NOT cancel() here again, as stopTrack already handled it.
-    // Calling cancel() immediately before speak() causes silent failures on macOS/Safari.
-    
     const text = cleanMarkdownForAudio(content);
     // Split by sentence markers to prevent silent failures on long text, ensuring we don't drop text without punctuation
     const chunks = text.match(/[^.!?]+[.!?]*|.+/g)?.map(s => s.trim()).filter(Boolean) || [text];
@@ -161,10 +167,8 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     currentChunkIndexRef.current = chunkIndex;
     setIsLoading(false);
     
-    // Add a tiny delay to ensure any previous cancel() has fully flushed from the OS speech daemon.
-    setTimeout(() => {
-      playNextChunk();
-    }, 50);
+    // Execute synchronously to preserve user-gesture
+    playNextChunk();
   };
 
   const playNextChunk = () => {
