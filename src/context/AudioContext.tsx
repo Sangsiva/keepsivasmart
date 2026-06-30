@@ -65,6 +65,12 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     // Stop current track if any
     stopTrack();
     
+    // Synchronously unlock SpeechSynthesis engine before the async fetch!
+    // Browsers block TTS if it's not initiated by a direct user gesture.
+    const unlockUtterance = new SpeechSynthesisUtterance('');
+    unlockUtterance.volume = 0;
+    window.speechSynthesis.speak(unlockUtterance);
+    
     setIsLoading(true);
     setCurrentModuleId(moduleId);
     setCurrentTrackTitle(title);
@@ -121,8 +127,8 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     window.speechSynthesis.cancel();
     
     const text = cleanMarkdownForAudio(content);
-    // Split by sentence markers to prevent silent failures on long text
-    const chunks = text.match(/[^.!?]+[.!?]+/g) || [text];
+    // Split by sentence markers to prevent silent failures on long text, ensuring we don't drop text without punctuation
+    const chunks = text.match(/[^.!?]+[.!?]*|.+/g)?.map(s => s.trim()).filter(Boolean) || [text];
     fallbackChunksRef.current = chunks;
     
     // Estimate duration: ~150 WPM
