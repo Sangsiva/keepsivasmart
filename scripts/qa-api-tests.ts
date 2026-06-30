@@ -43,7 +43,7 @@ async function getAuthCookie() {
       redirect: 'manual'
     });
 
-    const setCookies = authRes.headers.getRaw ? authRes.headers.getRaw('set-cookie') : (authRes.headers as any).raw?.()['set-cookie'] || [];
+    const setCookies = (authRes.headers as any).getRaw ? (authRes.headers as any).getRaw('set-cookie') : (authRes.headers as any).raw?.()['set-cookie'] || [];
     
     // In Node 18 fetch, we can use `getSetCookie()`
     const cookieArray = typeof authRes.headers.getSetCookie === 'function' ? authRes.headers.getSetCookie() : [];

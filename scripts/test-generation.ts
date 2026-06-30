@@ -56,7 +56,7 @@ async function testPureHeadlessGeneration(topic: string, filename: string) {
     const inputSelector = 'rich-textarea p, div[contenteditable="true"]';
     await page.waitForSelector(inputSelector, { timeout: 15000 });
 
-    await page.evaluate((selector, text) => {
+    await page.evaluate((selector: string, text: string) => {
       const el = document.querySelector(selector) as HTMLElement;
       if (el) {
         el.innerText = text;
